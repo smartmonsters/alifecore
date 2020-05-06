@@ -75,8 +75,13 @@ static CBlock CreateGenesisBlock(uint32_t nTime, uint32_t nNonce, uint32_t nBits
  */
 static CBlock CreateTestnetGenesisBlock(uint32_t nTime, uint32_t nNonce, uint32_t nBits, int32_t nVersion, const CAmount& genesisReward)
 {
-    const char* pszTimestamp = "\nHuntercoin test net\n";
-    const CScript genesisOutputScript = CScript() << OP_DUP << OP_HASH160 << ParseHex("7238d2df990b8e333ed28a84a8df8408f6dbcd57") << OP_EQUALVERIFY << OP_CHECKSIG;
+    // SMC basic conversion -- testnet
+//    const char* pszTimestamp = "\nHuntercoin test net\n";
+//    const CScript genesisOutputScript = CScript() << OP_DUP << OP_HASH160 << ParseHex("7238d2df990b8e333ed28a84a8df8408f6dbcd57") << OP_EQUALVERIFY << OP_CHECKSIG;
+    const char* pszTimestamp = "\n"
+                               "SmartMonsters beta testnet timestamp\n"
+                               "July 28, 2018 15:00 GMT\n";
+    const CScript genesisOutputScript = CScript() << OP_DUP << OP_HASH160 << ParseHex("2e1d00911a6f125e1dd190d932e19bfcf3157670") << OP_EQUALVERIFY << OP_CHECKSIG;
     return CreateGenesisBlock(pszTimestamp, genesisOutputScript, nTime, nNonce, nBits, nVersion, genesisReward);
 }
 
@@ -213,32 +218,52 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_SEGWIT].nStartTime = 0;
         consensus.vDeployments[Consensus::DEPLOYMENT_SEGWIT].nTimeout = 0; // Not yet enabled
 
+        // SMC basic conversion -- testnet
+//        consensus.nAuxpowChainId[ALGO_SHA256D] = 0x0006;
+//        consensus.nAuxpowChainId[ALGO_SCRYPT] = 0x0002;
         consensus.nAuxpowChainId[ALGO_SHA256D] = 0x0006;
         consensus.nAuxpowChainId[ALGO_SCRYPT] = 0x0002;
         consensus.fStrictChainId = false;
 
         consensus.rules.reset(new Consensus::TestNetConsensus());
 
+        // SMC basic conversion -- testnet
+//        pchMessageStart[0] = 0xfa;
+//        pchMessageStart[1] = 0xbf;
+//        pchMessageStart[2] = 0xb5;
+//        pchMessageStart[3] = 0xfe;
+//        nDefaultPort = 18398;
+//        nPruneAfterHeight = 1000;
+
+//        genesis = CreateTestnetGenesisBlock(1391193136, 1997599826u, 503382015, 1, 100 * COIN);
+//        consensus.hashGenesisBlock = genesis.GetHash();
         pchMessageStart[0] = 0xfa;
         pchMessageStart[1] = 0xbf;
-        pchMessageStart[2] = 0xb5;
+        pchMessageStart[2] = 0xc5; // changed
         pchMessageStart[3] = 0xfe;
-        nDefaultPort = 18398;
+        nDefaultPort = 18396;
         nPruneAfterHeight = 1000;
 
-        genesis = CreateTestnetGenesisBlock(1391193136, 1997599826u, 503382015, 1, 100 * COIN);
+        genesis = CreateTestnetGenesisBlock(1532790938, 537787730u, 0x1e00ffff, 1, 850000 * COIN);
         consensus.hashGenesisBlock = genesis.GetHash();
-        assert(consensus.hashGenesisBlock == uint256S("000000492c361a01ce7558a3bfb198ea3ff2f86f8b0c2e00d26135c53f4acbf7"));
-        assert(genesis.hashMerkleRoot == uint256S("28da665eada1b006bb9caf83e7541c6f995e0681debfc2540507bbfdf2d4ac84"));
+        // SMC basic conversion -- testnet
+//        assert(consensus.hashGenesisBlock == uint256S("000000492c361a01ce7558a3bfb198ea3ff2f86f8b0c2e00d26135c53f4acbf7"));
+//        assert(genesis.hashMerkleRoot == uint256S("28da665eada1b006bb9caf83e7541c6f995e0681debfc2540507bbfdf2d4ac84"));
+        assert(consensus.hashGenesisBlock == uint256S("00000063c87e68fcefc5907d4b4ce8441295b7e34a5e91a98cae872d8e8f1e92"));
+        assert(genesis.hashMerkleRoot == uint256S("1034706b901b8beae369534146f6c8211997446752eab752486c4c7c20280acb"));
 
         vFixedSeeds.clear();
         vSeeds.clear();
         /* FIXME: Testnet seeds?  */
         //vSeeds.push_back(CDNSSeedData("webbtc.com", "dnsseed.test.namecoin.webbtc.com"));
 
-        base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,100);
+        // SMC basic conversion -- testnet
+//        base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,100);
+//        base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,196); // FIXME: Update
+//        base58Prefixes[SECRET_KEY] =     std::vector<unsigned char>(1,228);
+        base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,111);
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,196); // FIXME: Update
-        base58Prefixes[SECRET_KEY] =     std::vector<unsigned char>(1,228);
+        base58Prefixes[SECRET_KEY] =     std::vector<unsigned char>(1,239);
         /* FIXME: Update these below.  */
         base58Prefixes[EXT_PUBLIC_KEY] = boost::assign::list_of(0x04)(0x35)(0x87)(0xCF).convert_to_container<std::vector<unsigned char> >();
         base58Prefixes[EXT_SECRET_KEY] = boost::assign::list_of(0x04)(0x35)(0x83)(0x94).convert_to_container<std::vector<unsigned char> >();
@@ -254,7 +279,9 @@ public:
 
         checkpointData = (CCheckpointData) {
             boost::assign::map_list_of
-            (     0, uint256S("000000492c361a01ce7558a3bfb198ea3ff2f86f8b0c2e00d26135c53f4acbf7")),
+            // SMC basic conversion -- testnet
+//            (     0, uint256S("000000492c361a01ce7558a3bfb198ea3ff2f86f8b0c2e00d26135c53f4acbf7")),
+            (     0, uint256S("00000063c87e68fcefc5907d4b4ce8441295b7e34a5e91a98cae872d8e8f1e92")),
             0,
             0,
             0
@@ -304,17 +331,30 @@ public:
 
         consensus.rules.reset(new Consensus::RegTestConsensus());
 
+        // SMC basic conversion -- testnet
+        //        pchMessageStart[0] = 0xfa;
+        //        pchMessageStart[1] = 0xbf;
+        //        pchMessageStart[2] = 0xb5;
+        //        pchMessageStart[3] = 0xda;
+//        nDefaultPort = 18398;
+//        nPruneAfterHeight = 1000;
+
+        //        genesis = CreateTestnetGenesisBlock(1296688602, 2, 0x207fffff, 1, 50 * COIN);
+//        consensus.hashGenesisBlock = genesis.GetHash();
         pchMessageStart[0] = 0xfa;
         pchMessageStart[1] = 0xbf;
-        pchMessageStart[2] = 0xb5;
-        pchMessageStart[3] = 0xda;
-        nDefaultPort = 18498;
+        pchMessageStart[2] = 0xc5; // changed
+        pchMessageStart[3] = 0xfe; // changed
+        nDefaultPort = 18396;
         nPruneAfterHeight = 1000;
 
-        genesis = CreateTestnetGenesisBlock(1296688602, 2, 0x207fffff, 1, 50 * COIN);
+        genesis = CreateTestnetGenesisBlock(1532790938, 537787730u, 0x1e00ffff, 1, 850000 * COIN);
         consensus.hashGenesisBlock = genesis.GetHash();
-        assert(consensus.hashGenesisBlock == uint256S("0x3867dcd08712d9b49de33d4ab145d57ad14a78c7843c51f8c5d782d5f102fb4a"));
-        assert(genesis.hashMerkleRoot == uint256S("0x71c88ed0560ee7d644deba07485c4eff571e3f86f9485692ed3966e4f0f3a59c"));
+        // SMC basic conversion -- testnet
+        //        assert(consensus.hashGenesisBlock == uint256S("0x3867dcd08712d9b49de33d4ab145d57ad14a78c7843c51f8c5d782d5f102fb4a"));
+        //        assert(genesis.hashMerkleRoot == uint256S("0x71c88ed0560ee7d644deba07485c4eff571e3f86f9485692ed3966e4f0f3a59c"));
+        assert(consensus.hashGenesisBlock == uint256S("00000063c87e68fcefc5907d4b4ce8441295b7e34a5e91a98cae872d8e8f1e92"));
+        assert(genesis.hashMerkleRoot == uint256S("1034706b901b8beae369534146f6c8211997446752eab752486c4c7c20280acb"));
 
         vFixedSeeds.clear(); //!< Regtest mode doesn't have any fixed seeds.
         vSeeds.clear();      //!< Regtest mode doesn't have any DNS seeds.
@@ -327,14 +367,20 @@ public:
 
         checkpointData = (CCheckpointData){
             boost::assign::map_list_of
-            ( 0, uint256S("3867dcd08712d9b49de33d4ab145d57ad14a78c7843c51f8c5d782d5f102fb4a")),
+            // SMC basic conversion -- testnet
+//            ( 0, uint256S("3867dcd08712d9b49de33d4ab145d57ad14a78c7843c51f8c5d782d5f102fb4a")),
+            (     0, uint256S("00000063c87e68fcefc5907d4b4ce8441295b7e34a5e91a98cae872d8e8f1e92")),
             0,
             0,
             0
         };
-        base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,100);
-        base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,196); // FIXME: Update.
-        base58Prefixes[SECRET_KEY] =     std::vector<unsigned char>(1,228);
+        // SMC basic conversion -- testnet
+//        base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,100);
+//        base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,196); // FIXME: Update
+//        base58Prefixes[SECRET_KEY] =     std::vector<unsigned char>(1,228);
+        base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,111);
+        base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,196); // FIXME: Update
+        base58Prefixes[SECRET_KEY] =     std::vector<unsigned char>(1,239);
         /* FIXME: Update below.  */
         base58Prefixes[EXT_PUBLIC_KEY] = boost::assign::list_of(0x04)(0x35)(0x87)(0xCF).convert_to_container<std::vector<unsigned char> >();
         base58Prefixes[EXT_SECRET_KEY] = boost::assign::list_of(0x04)(0x35)(0x83)(0x94).convert_to_container<std::vector<unsigned char> >();
