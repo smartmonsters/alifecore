@@ -122,16 +122,17 @@ public:
     {
         switch (type)
         {
+            // SMC basic conversion -- part 5: custom fork heights
             case FORK_POISON:
-                return nHeight >= 190000;
+                return nHeight >= 100; // 190000;
             case FORK_CARRYINGCAP:
-                return nHeight >= 200000;
+                return nHeight >= 110; // 200000;
             case FORK_LESSHEARTS:
-                return nHeight >= 240000;
+                return nHeight >= 120; // 240000;
             case FORK_LIFESTEAL:
-                return nHeight >= 301000;
+                return nHeight >= 99999999; // 301000;
             case FORK_TIMESAVE:
-                return nHeight >= 331500;
+                return nHeight >= 99999999; // 331500;
             default:
                 assert (false);
         }

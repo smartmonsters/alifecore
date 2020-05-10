@@ -268,9 +268,92 @@ struct CharacterState
     CollectedLootInfo loot;             // Loot collected by player but not banked yet
     unsigned char stay_in_spawn_area;   // Auto-kill players who stay in the spawn area too long
 
+    // SMC basic conversion -- part 10: extended character state
+    unsigned char ai_npc_role;
+    unsigned char ai_reason;
+    unsigned char rpg_slot_armor;
+    unsigned char rpg_slot_spell;
+    unsigned char rpg_slot_cooldown;
+    unsigned char ai_slot_amulet;
+    unsigned char ai_slot_ring;
+    unsigned char ai_poi;
+    unsigned char ai_fav_harvest_poi;
+    unsigned char ai_queued_harvest_poi;
+    unsigned char ai_duty_harvest_poi;
+    unsigned char ai_marked_harvest_poi; // for mark+recall spell
+    unsigned char ai_state;
+    unsigned char ai_state2;
+    unsigned char ai_state3;
+    unsigned char ai_chat;
+    unsigned char ai_idle_time;
+    unsigned char ai_mapitem_count;
+    unsigned char ai_foe_count;
+    unsigned char ai_foe_dist;
+    //
+    unsigned char ai_retreat;
+    int rpg_survival_points;
+    int rpg_rations;
+    int rpg_range_for_display;
+    int ai_recall_timer;
+    int ai_regen_timer;
+    int ai_order_time;
+    //
+    int64_t ai_reserve64_1;
+    int64_t ai_reserve64_2;
+    int64_t aux_storage_s1;
+    int64_t aux_storage_s2;
+    uint64_t aux_storage_u1;
+    uint64_t aux_storage_u2;
+    //
+    int aux_spawn_block;
+    int aux_last_sale_block;
+    int aux_stasis_block;
+    int aux_gather_block;
+
     CharacterState ()
       : coord(0, 0), dir(0), from(0, 0),
         stay_in_spawn_area(0)
+      // SMC basic conversion -- part 10b: extended character state
+      , ai_npc_role(0),
+      ai_reason(0),
+      rpg_slot_armor(0),
+      rpg_slot_spell(0),
+      rpg_slot_cooldown(0),
+      ai_slot_amulet(0),
+      ai_slot_ring(0),
+      ai_poi(0),
+      ai_fav_harvest_poi(0),
+      ai_queued_harvest_poi(0),
+      ai_duty_harvest_poi(0),
+      ai_marked_harvest_poi(0),
+      ai_state(0),
+      ai_state2(0),
+      ai_state3(0),
+      ai_chat(0),
+      ai_idle_time(0),
+      ai_mapitem_count(0),
+      ai_foe_count(0),
+      ai_foe_dist(0),
+      //
+      ai_retreat(0),
+      rpg_survival_points(0),
+      rpg_rations(0),
+      rpg_range_for_display(0),
+      ai_recall_timer(0),
+      ai_regen_timer(0),
+      ai_order_time(0),
+      //
+      ai_reserve64_1(0),
+      ai_reserve64_2(0),
+      aux_storage_s1(0),
+      aux_storage_s2(0),
+      aux_storage_u1(0),
+      aux_storage_u2(0),
+      //
+      aux_spawn_block(0),
+      aux_last_sale_block(0),
+      aux_stasis_block(0),
+      aux_gather_block(0)
     {}
 
     ADD_SERIALIZE_METHODS;
@@ -285,6 +368,47 @@ struct CharacterState
       READWRITE (waypoints);
       READWRITE (loot);
       READWRITE (stay_in_spawn_area);
+      // SMC basic conversion -- part 10c: extended character state
+      READWRITE(ai_npc_role);
+      READWRITE(ai_reason);
+      READWRITE(rpg_slot_armor);
+      READWRITE(rpg_slot_spell);
+      READWRITE(rpg_slot_cooldown);
+      READWRITE(ai_slot_amulet);
+      READWRITE(ai_slot_ring);
+      READWRITE(ai_poi);
+      READWRITE(ai_fav_harvest_poi);
+      READWRITE(ai_queued_harvest_poi);
+      READWRITE(ai_duty_harvest_poi);
+      READWRITE(ai_marked_harvest_poi);
+      READWRITE(ai_state);
+      READWRITE(ai_state2);
+      READWRITE(ai_state3);
+      READWRITE(ai_chat);
+      READWRITE(ai_idle_time);
+      READWRITE(ai_mapitem_count);
+      READWRITE(ai_foe_count);
+      READWRITE(ai_foe_dist);
+      //
+      READWRITE(ai_retreat);
+      READWRITE(rpg_survival_points);
+      READWRITE(rpg_rations);
+      READWRITE(rpg_range_for_display);
+      READWRITE(ai_recall_timer);
+      READWRITE(ai_regen_timer);
+      READWRITE(ai_order_time);
+      //
+      READWRITE(ai_reserve64_1);
+      READWRITE(ai_reserve64_2);
+      READWRITE(aux_storage_s1);
+      READWRITE(aux_storage_s2);
+      READWRITE(aux_storage_u1);
+      READWRITE(aux_storage_u2);
+      //
+      READWRITE(aux_spawn_block);
+      READWRITE(aux_last_sale_block);
+      READWRITE(aux_stasis_block);
+      READWRITE(aux_gather_block);
     }
 
     void Spawn(const GameState& state, int color, RandomGenerator &rnd);
@@ -294,6 +418,10 @@ struct CharacterState
         from = coord;
         waypoints.clear();
     }
+
+    // SMC basic conversion -- part 11: extended version of MoveTowardsWaypoint
+    void MoveTowardsWaypointX_Merchants(RandomGenerator &rnd, int color_of_moving_char, int out_height);
+    void MoveTowardsWaypointX_Pathfinder(RandomGenerator &rnd, int color_of_moving_char, int out_height);
 
     void MoveTowardsWaypoint();
     WaypointVector DumpPath(const WaypointVector *alternative_waypoints = NULL) const;
@@ -341,6 +469,38 @@ struct PlayerState
     std::string address;      // Address for receiving rewards. Empty means receive to the name address
     std::string addressLock;  // "Admin" address for player - reward address field can only be changed, if player is transferred to addressLock
 
+    // SMC basic conversion -- part 12: bounties and voting
+    std::string msg_token;
+    std::string msg_vote;
+    int msg_vote_block;
+    std::string msg_request;
+    int msg_request_block;
+    std::string msg_fee;
+    std::string msg_comment;
+    int64_t coins_vote;
+    int64_t coins_request;
+    int64_t coins_fee;
+    // alphatest -- reserved for tokens
+    std::string gw_name;
+    std::string gw_command;
+    int gw_command_block;
+    std::string gw_addr_other;
+    int64_t gw_amount_coins;
+    int64_t gw_amount_other;
+    int64_t gw_amount_auto;
+    // alphatest -- reserved for high level player input
+    std::string msg_area;
+    int msg_area_block;
+    std::string msg_merchant;
+    int msg_merchant_block;
+    // reserve
+    std::string pl_reserve_s1;
+    std::string pl_reserve_s2;
+    int pl_reserve1;
+    int pl_reserve2;
+    int64_t pl_reserve3;
+    int64_t pl_reserve4;
+
     ADD_SERIALIZE_METHODS;
 
     template<typename Stream, typename Operation>
@@ -357,6 +517,40 @@ struct PlayerState
       READWRITE (address);
       READWRITE (addressLock);
 
+
+      // SMC basic conversion -- part 12b: bounties and voting
+      READWRITE(msg_token);
+      READWRITE(msg_vote);
+      READWRITE(msg_vote_block);
+      READWRITE(msg_request);
+      READWRITE(msg_request_block);
+      READWRITE(msg_fee);
+      READWRITE(msg_comment);
+      READWRITE(coins_vote);
+      READWRITE(coins_request);
+      READWRITE(coins_fee);
+      // alphatest -- reserved for tokens
+      READWRITE(gw_name);
+      READWRITE(gw_command);
+      READWRITE(gw_command_block);
+      READWRITE(gw_addr_other);
+      READWRITE(gw_amount_coins);
+      READWRITE(gw_amount_other);
+      READWRITE(gw_amount_auto);
+      // alphatest -- reserved for high level player input
+      READWRITE(msg_area);
+      READWRITE(msg_area_block);
+      READWRITE(msg_merchant);
+      READWRITE(msg_merchant_block);
+      // reserve
+      READWRITE(pl_reserve_s1);
+      READWRITE(pl_reserve_s2);
+      READWRITE(pl_reserve1);
+      READWRITE(pl_reserve2);
+      READWRITE(pl_reserve3);
+      READWRITE(pl_reserve4);
+
+
       READWRITE (lockedCoins);
       READWRITE (value);
     }
@@ -364,6 +558,15 @@ struct PlayerState
     PlayerState ()
       : color(0xFF), lockedCoins(0), value(-1),
         next_character_index(0), remainingLife(-1), message_block(0)
+
+      // SMC basic conversion -- part 12c: bounties and voting
+      , msg_vote_block(0), msg_request_block(0), coins_vote(0), coins_request(0), coins_fee(0)
+      // alphatest -- reserved for tokens
+      , gw_command_block(0), gw_amount_coins(0), gw_amount_other(0), gw_amount_auto(0)
+      // alphatest -- reserved for high level player input
+      , msg_area_block(0), msg_merchant_block(0)
+      // reserve
+      , pl_reserve1(0), pl_reserve2(0), pl_reserve3(0), pl_reserve4(0)
     {}
 
     void SpawnCharacter(const GameState& state, RandomGenerator &rnd);
@@ -417,6 +620,33 @@ struct GameState
     /* TODO: Can we get rid of this?  */
     uint256 hashBlock;
 
+    // SMC basic conversion -- part 13: bounties and voting
+    int64_t dao_BestFee;
+    int64_t dao_BestFeeFinal; // for display only
+    int64_t dao_BestRequest;
+    int64_t dao_BestRequestFinal;
+    std::string dao_BestName;
+    std::string dao_BestNameFinal;
+    std::string dao_BestComment;
+    std::string dao_BestCommentFinal;
+    int64_t dao_BountyPreviousWeek; // for display only
+    std::string dao_NamePreviousWeek; // for display only
+    std::string dao_CommentPreviousWeek;
+    int64_t dao_AdjustUpkeep;
+    int dao_AdjustPopulationLimit;
+    int dao_MinVersion;
+    // alphatest -- checkpoints
+    int dcpoint_height1;
+    int dcpoint_height2;
+    uint256 dcpoint_hash1;
+    uint256 dcpoint_hash2;
+    // alphatest -- reserved for tokens
+    int gw_count;
+    int gw_first_free;
+    // reserve
+    std::string gs_reserve_s1;
+    std::string gs_reserve_s2;
+
     ADD_SERIALIZE_METHODS;
 
     template<typename Stream, typename Operation>
@@ -440,8 +670,35 @@ struct GameState
       READWRITE (nHeight);
       READWRITE (nDisasterHeight);
       READWRITE (hashBlock);
+
+      // SMC basic conversion -- part 13b: bounties and voting
+      READWRITE(dao_BestFee);
+      READWRITE(dao_BestFeeFinal);
+      READWRITE(dao_BestRequest);
+      READWRITE(dao_BestRequestFinal);
+      READWRITE(dao_BestName);
+      READWRITE(dao_BestNameFinal);
+      READWRITE(dao_BestComment);
+      READWRITE(dao_BestCommentFinal);
+      READWRITE(dao_BountyPreviousWeek);
+      READWRITE(dao_NamePreviousWeek);
+      READWRITE(dao_CommentPreviousWeek);
+      READWRITE(dao_AdjustUpkeep);
+      READWRITE(dao_AdjustPopulationLimit);
+      READWRITE(dao_MinVersion);
+      // alphatest -- checkpoints
+      READWRITE(dcpoint_height1);
+      READWRITE(dcpoint_height2);
+      READWRITE(dcpoint_hash1);
+      READWRITE(dcpoint_hash2);
+      // alphatest -- reserved for tokens
+      READWRITE(gw_count);
+      READWRITE(gw_first_free);
+      // reserve
+      READWRITE(gs_reserve_s1);
+      READWRITE(gs_reserve_s2);
     }
-    
+
     UniValue ToJsonValue() const;
 
     inline bool
@@ -496,6 +753,17 @@ struct GameState
 
     /* Perform spawn deaths.  */
     void KillSpawnArea (StepResult& step);
+
+
+    // SMC basic conversion -- part 14: ranged attacks
+    void KillRangedAttacks (StepResult& step);
+    void Pass0_CacheDataForGame ();
+    void Pass1_DAO ();
+    void Pass2_Melee ();
+    void Pass3_PaymentAndHitscan ();
+    void Pass4_Refund ();
+    void PrintPlayerStats ();
+
 
     /* Apply poison disaster to the state.  */
     void ApplyDisaster (RandomGenerator& rng);
@@ -661,5 +929,53 @@ public:
 // for any ordering of the moves, except non-critical cases (e.g. finding
 // an empty cell to spawn new player)
 bool PerformStep(const GameState &inState, const StepData &stepData, GameState &outState, StepResult &stepResult);
+
+
+// SMC basic conversion -- part 15: variables declaration
+#define ALTNAME_LEN_MAX 18
+#define ALTNAME_ASCII_OK(C) ((C >= 32) && (C <= 126))
+extern int Displaycache_devmode;
+extern std::string Displaycache_devmode_npcname;
+
+#define RPG_NUM_TEAM_COLORS 4
+#define RPG_NPCROLE_MAX 103
+extern int Rpg_PopulationCount[RPG_NPCROLE_MAX];
+extern int64_t Rpg_WeightedPopulationCount[RPG_NPCROLE_MAX];
+extern int Rpg_TotalPopulationCount;
+extern int Rpg_InactivePopulationCount;
+extern int Rpg_StrongestTeam;
+extern int Rpg_WeakestTeam;
+extern int Rpg_MonsterCount;
+extern int64_t Rpg_WeightedMonsterCount;
+extern bool Rpg_monsters_weaker_than_players;
+extern bool Rpg_need_monsters_badly;
+extern bool Rpg_hearts_spawn;
+extern bool Rpg_berzerk_rules_in_effect;
+extern int64_t Rpg_TeamBalanceCount[RPG_NUM_TEAM_COLORS];
+extern std::string Rpg_TeamColorDesc[RPG_NUM_TEAM_COLORS];
+
+// hunter messages
+//#define ALLOW_H2H_PAYMENT
+#define ALLOW_H2H_PAYMENT_NPCONLY
+#define HUNTERMSG_CACHE_MAX 10000
+extern std::string Huntermsg_pay_other[HUNTERMSG_CACHE_MAX];
+
+extern int Gamecache_devmode;
+extern int Gamecache_dyncheckpointheight1;
+extern int Gamecache_dyncheckpointheight2;
+extern uint256 Gamecache_dyncheckpointhash1;
+extern uint256 Gamecache_dyncheckpointhash2;
+#define RPG_INTERVAL_MONSTERAPOCALYPSE (Gamecache_devmode == 8 ? 200 : 2000)
+#define RPG_INTERVAL_ROGER_100_PERCENT (RPG_INTERVAL_MONSTERAPOCALYPSE / 2)
+#define RPG_INTERVAL_TILL_AUTOMODE (RPG_INTERVAL_MONSTERAPOCALYPSE / 2)
+#define RPG_BLOCKS_SINCE_MONSTERAPOCALYPSE(H) (H % RPG_INTERVAL_MONSTERAPOCALYPSE)
+#define RPG_BLOCKS_TILL_MONSTERAPOCALYPSE(H) (RPG_INTERVAL_MONSTERAPOCALYPSE - (H % RPG_INTERVAL_MONSTERAPOCALYPSE))
+#define RPG_COMMAND_CHAMPION_REQUIRED_SP(H) ((RPG_INTERVAL_MONSTERAPOCALYPSE * 10) / (RPG_BLOCKS_SINCE_MONSTERAPOCALYPSE(H) + 1))
+#define RPG_INTERVAL_BOUNTYCYCLE (Gamecache_devmode == 8 ? 1000 : 10000)
+
+extern int64_t Cache_adjusted_ration_price;
+//extern int64 Cache_adjusted_population_limit;
+extern int Cache_min_version;
+
 
 #endif

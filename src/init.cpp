@@ -64,6 +64,11 @@
 #include "zmq/zmqnotificationinterface.h"
 #endif
 
+
+// SMC basic conversion -- part 7b: includes
+#include "game/map.h"
+
+
 using namespace std;
 
 bool fFeeEstimatesInitialized = false;
@@ -797,6 +802,193 @@ void InitLogging()
     LogPrintf("Huntercoin version %s\n", FormatFullVersion());
 }
 
+
+// SMC basic conversion -- part 7: functions to calculate distances
+static void Calculate_merchantbasemap()
+{
+    for (int j = 0; j < MAP_HEIGHT; j++)
+    for (int i = 0; i < MAP_WIDTH; i++)
+        AI_merchantbasemap [j][i] = 0;
+
+    for (int m = 0; m < NUM_MERCHANTS; m++)
+    {
+        int x = Merchant_base_x[m];
+        int y = Merchant_base_y[m];
+        if (IsInsideMap(x, y))
+            if ((x > 0) && (y > 0))
+                AI_merchantbasemap[y][x] = (m >= MERCH_NORMAL_FIRST) ? AI_MBASEMAP_MERCH_NORMAL : AI_MBASEMAP_MERCH_TP;
+    }
+
+    for (int poi = 0; poi < AI_NUM_POI; poi++)
+    {
+        int a = AI_MBASEMAP_TELEPORT;
+        int b = 0;
+
+        int xa = POI_pos_xa[poi];
+        int ya = POI_pos_ya[poi];
+        if ((poi >= POIINDEX_TP_FIRST) && (poi <= POIINDEX_TP_LAST))                b = AI_MBASEMAP_TP_EXIT_ACTIVE;
+        else if ((poi >= POIINDEX_MONSTER_FIRST) && (poi <= POIINDEX_MONSTER_LAST)) a = AI_MBASEMAP_TP_EXIT_ACTIVE;
+        else if (poi == POIINDEX_CENTER)                                            a = AI_MBASEMAP_TP_EXIT_ACTIVE;
+//        else a = 0;
+        else a = AI_MBASEMAP_TP_EXIT_INACTIVE;
+
+        AI_merchantbasemap[ya][xa] = a;
+        AI_merchantbasemap[POI_pos_yb[poi]][POI_pos_xb[poi]] = b;
+    }
+}
+static void Calculate_distance_to_POI()
+{
+    // initialize
+    for (int k = 0; k < AI_NUM_POI; k++)
+    for (int j = 0; j < MAP_HEIGHT; j++)
+    for (int i = 0; i < MAP_WIDTH; i++)
+        Distance_To_POI[k][j][i] = -1; // -1 ... unreachable
+
+    // calculate distance
+    for (int k = 0; k < AI_NUM_POI; k++)
+    {
+        int err = 0;
+
+        short qx[MAP_HEIGHT * MAP_WIDTH]; // work queue
+        short qy[MAP_HEIGHT * MAP_WIDTH];
+
+        Distance_To_POI[k][POI_pos_ya[k]][POI_pos_xa[k]] = 0; // element #0
+        qx[0] = POI_pos_xa[k];
+        qy[0] = POI_pos_ya[k];
+        int idone = 0; // element #0 is done
+        int inext = 1;
+
+        for (int l = 0; l < MAP_HEIGHT * MAP_WIDTH; l++) // element #1...#n
+        {
+            int x = qx[idone];
+            int y = qy[idone];
+
+            if (!IsInsideMap(x, y))
+            {
+                printf("Calculate_distance_to_POI: ERROR poi=%d x=%d y=%d idone=%d l=%d\n", k, x, y, idone, l);
+                return;
+            }
+
+            int dist = Distance_To_POI[k][y][x];
+
+            for (int u = x - 1; u <= x + 1; u++)
+            for (int v = y - 1; v <= y + 1; v++)
+            {
+                if (!IsInsideMap(u, v)) continue;
+                if (Distance_To_POI[k][v][u] > -1) continue;
+                if (!IsWalkable(u, v)) continue;
+
+                Distance_To_POI[k][v][u] = dist + 1;
+                if (inext >= MAP_HEIGHT * MAP_WIDTH)
+                {
+                    printf("Calculate_distance_to_POI: poi %d: ERROR: queue too short\n", k);
+                    return;
+                }
+                qx[inext] = u;
+                qy[inext] = v;
+                inext++;
+            }
+
+            if (l >= MAP_HEIGHT * MAP_WIDTH - 1) // -1 ???
+            {
+                err = 2;
+                break;
+            }
+
+            idone++;
+            if (inext <= idone)
+                break;
+        }
+
+        if (err == 2)
+            printf("Calculate_distance_to_POI: poi %d reachable from %d tiles, ERROR\n", k, idone);
+        else
+            printf("Calculate_distance_to_POI: poi %d reachable from %d tiles, xy = %d %d \n", k, idone, POI_pos_xa[k], POI_pos_ya[k]);
+    }
+}
+static void Calculate_distance_to_tiles()
+{
+    // initialize
+    for (int ky = 0; ky < MAP_HEIGHT; ky++)
+    for (int kx = 0; kx < MAP_WIDTH; kx++)
+    for (int j = 0; j < AI_NAV_SIZE; j++)
+    for (int i = 0; i < AI_NAV_SIZE; i++)
+        Distance_To_Tile[ky][kx][j][i] = -1; // -1 ... unreachable
+
+    int debug_max_l = 0;
+
+    // calculate distance
+    for (int ky = 0; ky < MAP_HEIGHT; ky++)
+    for (int kx = 0; kx < MAP_WIDTH; kx++)
+    {
+        if (!IsWalkable(kx, ky)) continue;
+
+        short qi[AI_NAV_SIZE * AI_NAV_SIZE]; // work queue
+        short qj[AI_NAV_SIZE * AI_NAV_SIZE];
+
+        Distance_To_Tile[ky][kx][AI_NAV_CENTER][AI_NAV_CENTER] = 0; // element #0
+        qi[0] = AI_NAV_CENTER;
+        qj[0] = AI_NAV_CENTER;
+        int idone = 0; // element #0 is done
+        int inext = 1;
+
+        for (int l = 0; l < AI_NAV_SIZE * AI_NAV_SIZE; l++) // element #1...#n
+        {
+            int i = qi[idone];
+            int j = qj[idone];
+
+            if ((i < 0) || (i >= AI_NAV_SIZE) || (j < 0) || (j >= AI_NAV_SIZE))
+            {
+                printf("Calculate_distance_to_tiles: ERROR\n");
+                return;
+            }
+
+            int dist = Distance_To_Tile[ky][kx][j][i];
+
+            for (int u = i - 1; u <= i + 1; u++)
+            for (int v = j - 1; v <= j + 1; v++)
+            {
+                if ((u < 0) || (u >= AI_NAV_SIZE) || (v < 0) || (v >= AI_NAV_SIZE)) continue;
+
+                int u_mappos = kx + u - AI_NAV_CENTER; // actual position of u,v on the map
+                int v_mappos = ky + v - AI_NAV_CENTER;
+                if (!IsInsideMap(u_mappos, v_mappos)) continue;
+
+                if (!IsInsideMap(kx, ky))
+                {
+                    printf("Calculate_distance_to_tiles: ERROR\n");
+                    return;
+                }
+
+                if (Distance_To_Tile[ky][kx][v][u] > -1) continue;
+                if (!IsWalkable(u_mappos, v_mappos)) continue;
+
+                Distance_To_Tile[ky][kx][v][u] = dist + 1;
+                if (inext >= AI_NAV_SIZE * AI_NAV_SIZE)
+                {
+                    printf("Calculate_distance_to_tiles: xy=%d,%d: ERROR: queue too short\n", kx, ky);
+                    return;
+                }
+                qi[inext] = u;
+                qj[inext] = v;
+                inext++;
+            }
+
+            if (l > debug_max_l)
+            {
+                 debug_max_l = l;
+            }
+
+            idone++;
+            if (inext <= idone)
+                break;
+        }
+    }
+
+    printf("Calculate_distance_to_tiles: debug_max_l = %d\n", debug_max_l);
+}
+
+
 /** Initialize bitcoin.
  *  @pre Parameters should be parsed and config file should be read.
  */
@@ -1088,6 +1280,15 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
     // Start the lightweight task scheduler thread
     CScheduler::Function serviceLoop = boost::bind(&CScheduler::serviceQueue, &scheduler);
     threadGroup.create_thread(boost::bind(&TraceThread<CScheduler::Function>, "scheduler", serviceLoop));
+
+
+    // SMC basic conversion -- part 8: calculate distances
+//    nStart = GetTimeMillis();
+    Calculate_distance_to_POI();
+    Calculate_distance_to_tiles();
+    Calculate_merchantbasemap();
+//    printf("AI initialized %15"PRI64d"ms\n", GetTimeMillis() - nStart);
+
 
     /* Start the RPC server already.  It will be started in "warmup" mode
      * and not really process calls already (but it will signify connections

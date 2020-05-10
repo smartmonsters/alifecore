@@ -221,8 +221,8 @@ public:
         // SMC basic conversion -- testnet
 //        consensus.nAuxpowChainId[ALGO_SHA256D] = 0x0006;
 //        consensus.nAuxpowChainId[ALGO_SCRYPT] = 0x0002;
-        consensus.nAuxpowChainId[ALGO_SHA256D] = 0x0006;
-        consensus.nAuxpowChainId[ALGO_SCRYPT] = 0x0002;
+        consensus.nAuxpowChainId[ALGO_SHA256D] = 555;
+        consensus.nAuxpowChainId[ALGO_SCRYPT] = 555;
         consensus.fStrictChainId = false;
 
         consensus.rules.reset(new Consensus::TestNetConsensus());

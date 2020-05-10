@@ -135,6 +135,37 @@ bool Move::Parse(const PlayerID &player, const std::string &json)
             return false;
         addressLock = addr;
     }
+    // SMC basic conversion -- part 17: bounties and voting
+    if (obj.extractField("msg_token", v))
+    {
+//        if (v.type() != str_type)
+//            return false;
+        msg_token = v.get_str();
+    }
+    if (obj.extractField("msg_vote", v))
+    {
+//        if (v.type() != str_type)
+//            return false;
+        msg_vote = v.get_str();
+    }
+    if (obj.extractField("msg_request", v))
+    {
+//        if (v.type() != str_type)
+//            return false;
+        msg_request = v.get_str();
+    }
+    if (obj.extractField("msg_fee", v))
+    {
+//        if (v.type() != str_type)
+//            return false;
+        msg_fee = v.get_str();
+    }
+    if (obj.extractField("msg_comment", v))
+    {
+//        if (v.type() != str_type)
+//            return false;
+        msg_comment = v.get_str();
+    }
 
     if (obj.extractField("color", v))
     {
@@ -168,6 +199,8 @@ bool Move::Parse(const PlayerID &player, const std::string &json)
         if (!ParseDestruct(v, bDestruct))
             return false;
 
+        // SMC basic conversion -- part 18: can combine destruct and waypoints
+        // (unchanged from Huntercore ???)
         if (bDestruct)
             destruct.insert(i);
         if (bWaypoints)
@@ -212,6 +245,24 @@ void Move::ApplyCommon(GameState &state) const
         pl.address = *address;
     if (addressLock)
         pl.addressLock = *addressLock;
+
+    // SMC basic conversion -- part 19: bounties and voting
+    if (msg_token)
+        pl.msg_token = *msg_token;
+    if (msg_vote)
+    {
+        pl.msg_vote = *msg_vote;
+        pl.msg_vote_block = state.nHeight;
+    }
+    if (msg_request)
+    {
+        pl.msg_request = *msg_request;
+        pl.msg_request_block = state.nHeight;
+    }
+    if (msg_fee)
+        pl.msg_fee = *msg_fee;
+    if (msg_comment)
+        pl.msg_comment = *msg_comment;
 }
 
 std::string Move::AddressOperationPermission(const GameState &state) const

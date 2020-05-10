@@ -34,6 +34,20 @@ struct Move
     boost::optional<std::string> address;
     boost::optional<std::string> addressLock;
 
+    // SMC basic conversion -- part 9: bounties and voting
+    boost::optional<std::string> msg_token;
+    boost::optional<std::string> msg_vote;
+    boost::optional<std::string> msg_request;
+    boost::optional<std::string> msg_fee;
+    boost::optional<std::string> msg_comment;
+    // alphatest -- reserved for tokens
+    // boost::optional<std::string> gw_name
+    // boost::optional<std::string> gw_command
+    // boost::optional<std::string> gw_addr_other
+    // alphatest -- reserved for high level player input
+    boost::optional<std::string> msg_area;
+    boost::optional<std::string> msg_merchant;
+
     /* For spawning moves.  */
     unsigned char color;
 
