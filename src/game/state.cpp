@@ -1517,7 +1517,12 @@ void CharacterState::MoveTowardsWaypointX_Pathfinder(RandomGenerator &rnd, int c
                     if (dist <= base_range)
                     {
                         int f = 0;
-                        if (clevel >= 3)
+                        if ((clevel >= 3) && (Cache_min_version < 2020600))
+                        {
+                            f = DMGMAP_DEATH1TO3;
+                        }
+                        // limit to strength 2 if fired at max range
+                        else if ((clevel >= 3) && (dist < base_range))
                         {
                             f = DMGMAP_DEATH1TO3;
                         }
@@ -1741,7 +1746,8 @@ void CharacterState::MoveTowardsWaypointX_Pathfinder(RandomGenerator &rnd, int c
                         if (!AI_IS_SAFEZONE(coord.x, coord.y))
                             ai_chat = AI_LEARNRESULT_FAIL_ALREADY_HERE;
 
-                        // postpone this change, going to current favorite area can be useful
+                        // postpone this change,
+                        // going to same area where you already are may be useful if carrying Book of Resting
                         if (Cache_min_version < 2020700)
                         {
                             ai_queued_harvest_poi = k_nearby;
@@ -4061,7 +4067,7 @@ GameState::KillRangedAttacks (StepResult& step)
     BOOST_FOREACH(PAIRTYPE(const PlayerID, PlayerState) &p, players)
     {
         int tmp_color = p.second.color;
-        int tmp_dlevel = p.second.dlevel;
+//        int tmp_dlevel = p.second.dlevel;
         bool general_is_merchant = false;
 
         std::set<int> toErase;
@@ -4681,6 +4687,12 @@ GameState::Pass1_DAO()
                             if (i == 0)
                             {
                                 CharacterState &ch = pc.second;
+
+                                // Can't initiate voting if General is a monster or NPC
+                                if (Cache_min_version >= 2020600)
+                                    if (ch.ai_npc_role)
+                                        break;
+
                                 if (ch.loot.nAmount >= p.second.coins_fee)
                                 {
                                     dao_BestFee = p.second.coins_fee;
