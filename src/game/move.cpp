@@ -166,6 +166,13 @@ bool Move::Parse(const PlayerID &player, const std::string &json)
 //            return false;
         msg_comment = v.get_str();
     }
+//  if (dao_MinVersion >= 2020600) // not available because move is parsed before normal gamestate processing
+    if (obj.extractField("msg_dlevel", v))
+    {
+//        if (v.type() != str_type)
+//            return false;
+        msg_dlevel = v.get_str();
+    }
 
     if (obj.extractField("color", v))
     {
@@ -263,6 +270,11 @@ void Move::ApplyCommon(GameState &state) const
         pl.msg_fee = *msg_fee;
     if (msg_comment)
         pl.msg_comment = *msg_comment;
+    if (msg_dlevel)
+    {
+        pl.msg_dlevel = *msg_dlevel;
+        pl.msg_dlevel_block = state.nHeight;
+    }
 }
 
 std::string Move::AddressOperationPermission(const GameState &state) const

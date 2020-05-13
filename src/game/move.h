@@ -40,10 +40,8 @@ struct Move
     boost::optional<std::string> msg_request;
     boost::optional<std::string> msg_fee;
     boost::optional<std::string> msg_comment;
-    // alphatest -- reserved for tokens
-    // boost::optional<std::string> gw_name
-    // boost::optional<std::string> gw_command
-    // boost::optional<std::string> gw_addr_other
+    // Dungeon levels
+    boost::optional<std::string> msg_dlevel;
     // alphatest -- reserved for high level player input
     boost::optional<std::string> msg_area;
     boost::optional<std::string> msg_merchant;

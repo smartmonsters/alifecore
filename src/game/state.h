@@ -480,10 +480,10 @@ struct PlayerState
     int64_t coins_vote;
     int64_t coins_request;
     int64_t coins_fee;
-    // alphatest -- reserved for tokens
+    // Dungeon levels, or reserved for tokens
     std::string gw_name;
-    std::string gw_command;
-    int gw_command_block;
+    std::string msg_dlevel;
+    int msg_dlevel_block;
     std::string gw_addr_other;
     int64_t gw_amount_coins;
     int64_t gw_amount_other;
@@ -496,7 +496,7 @@ struct PlayerState
     // reserve
     std::string pl_reserve_s1;
     std::string pl_reserve_s2;
-    int pl_reserve1;
+    int dlevel;
     int pl_reserve2;
     int64_t pl_reserve3;
     int64_t pl_reserve4;
@@ -529,10 +529,10 @@ struct PlayerState
       READWRITE(coins_vote);
       READWRITE(coins_request);
       READWRITE(coins_fee);
-      // alphatest -- reserved for tokens
+      // Dungeon levels, or reserved for tokens
       READWRITE(gw_name);
-      READWRITE(gw_command);
-      READWRITE(gw_command_block);
+      READWRITE(msg_dlevel);
+      READWRITE(msg_dlevel_block);
       READWRITE(gw_addr_other);
       READWRITE(gw_amount_coins);
       READWRITE(gw_amount_other);
@@ -545,7 +545,7 @@ struct PlayerState
       // reserve
       READWRITE(pl_reserve_s1);
       READWRITE(pl_reserve_s2);
-      READWRITE(pl_reserve1);
+      READWRITE(dlevel);
       READWRITE(pl_reserve2);
       READWRITE(pl_reserve3);
       READWRITE(pl_reserve4);
@@ -561,12 +561,12 @@ struct PlayerState
 
       // SMC basic conversion -- part 12c: bounties and voting
       , msg_vote_block(0), msg_request_block(0), coins_vote(0), coins_request(0), coins_fee(0)
-      // alphatest -- reserved for tokens
-      , gw_command_block(0), gw_amount_coins(0), gw_amount_other(0), gw_amount_auto(0)
+      // Dungeon levels, or reserved for tokens
+      , msg_dlevel_block(0), gw_amount_coins(0), gw_amount_other(0), gw_amount_auto(0)
       // alphatest -- reserved for high level player input
       , msg_area_block(0), msg_merchant_block(0)
       // reserve
-      , pl_reserve1(0), pl_reserve2(0), pl_reserve3(0), pl_reserve4(0)
+      , dlevel(0), pl_reserve2(0), pl_reserve3(0), pl_reserve4(0)
     {}
 
     void SpawnCharacter(const GameState& state, RandomGenerator &rnd);
@@ -640,9 +640,9 @@ struct GameState
     int dcpoint_height2;
     uint256 dcpoint_hash1;
     uint256 dcpoint_hash2;
-    // alphatest -- reserved for tokens
-    int gw_count;
-    int gw_first_free;
+    // Dungeon levels
+    int dao_DlevelMax;
+    int dao_DlevelActive;
     // reserve
     std::string gs_reserve_s1;
     std::string gs_reserve_s2;
@@ -691,9 +691,9 @@ struct GameState
       READWRITE(dcpoint_height2);
       READWRITE(dcpoint_hash1);
       READWRITE(dcpoint_hash2);
-      // alphatest -- reserved for tokens
-      READWRITE(gw_count);
-      READWRITE(gw_first_free);
+      // Dungeon levels
+      READWRITE(dao_DlevelMax);
+      READWRITE(dao_DlevelActive);
       // reserve
       READWRITE(gs_reserve_s1);
       READWRITE(gs_reserve_s2);
@@ -976,6 +976,8 @@ extern uint256 Gamecache_dyncheckpointhash2;
 extern int64_t Cache_adjusted_ration_price;
 //extern int64 Cache_adjusted_population_limit;
 extern int Cache_min_version;
+
+#define NUM_DUNGEON_LEVELS 10
 
 
 #endif
