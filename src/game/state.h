@@ -988,7 +988,5 @@ extern int64_t Cache_adjusted_ration_price;
 //extern int64 Cache_adjusted_population_limit;
 extern int Cache_min_version;
 
-#define NUM_DUNGEON_LEVELS 10
-
 
 #endif

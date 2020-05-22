@@ -526,9 +526,12 @@ static int64_t Rpg_getNeedToBuy(int m)
     return Rpgcache_NtB;
 }
 
+// for the entire game world
+int Rpg_TotalPopulationCount_global;                  // used to determine if vacation mode is free of upkeep
+// for the currently active dlevel
 int Rpg_PopulationCount[RPG_NPCROLE_MAX];
 int64_t Rpg_WeightedPopulationCount[RPG_NPCROLE_MAX];
-int Rpg_TotalPopulationCount;
+int Rpg_TotalPopulationCount;                         // used for heart spawn
 int Rpg_InactivePopulationCount;
 int Rpg_StrongestTeam;
 int Rpg_WeakestTeam;
@@ -593,10 +596,13 @@ int Cache_min_version;
 bool Cache_warn_upgrade;
 
 // Dungeon levels part 2
-int Cache_gameround_duration = 0;
+// initial numbers are valid for block height 0
+#define MIN_GAMEROUND_DURATION 2000
+bool Cache_gamecache_good = false;
+int Cache_gameround_duration = MIN_GAMEROUND_DURATION;
 int Cache_gameround_blockcount = 0;
 int Cache_gameround_start = 0;
-int Cache_timeslot_duration = 0;
+int Cache_timeslot_duration = MIN_GAMEROUND_DURATION;
 int Cache_timeslot_blockcount = 0;
 int Cache_timeslot_start = 0;
 int nCalculatedActiveDlevel = 0;
@@ -1040,7 +1046,7 @@ void CharacterState::MoveTowardsWaypointX_Merchants(RandomGenerator &rnd, int co
          ((out_height - aux_spawn_block) % RPG_INTERVAL_MONSTERAPOCALYPSE == 0) )
     {
         if ((ai_state2 & AI_STATE2_STASIS) && (aux_stasis_block < out_height - RPG_INTERVAL_MONSTERAPOCALYPSE) &&
-            (Rpg_TotalPopulationCount <= Cache_adjusted_population_limit))
+            (Rpg_TotalPopulationCount_global <= Cache_adjusted_population_limit))
         {
             ai_state3 |= AI_STATE3_STASIS_NOUPKEEP;
         }
@@ -4330,7 +4336,7 @@ GameState::Pass0_CacheDataForGame ()
     }
 
     // clear NPC statistic
-    Rpg_TotalPopulationCount = Rpg_InactivePopulationCount = 0;
+    Rpg_TotalPopulationCount_global = Rpg_TotalPopulationCount = Rpg_InactivePopulationCount = 0;
     for (int np = 0; np < RPG_NPCROLE_MAX; np++)
     {
         Rpg_PopulationCount[np] = 0;
@@ -4386,16 +4392,21 @@ GameState::Pass0_CacheDataForGame ()
             int tmp_score = RPG_SCORE_FROM_CLEVEL(tmp_clevel);
 
             // get NPC statistic (including normal PCs)
-            Rpg_TotalPopulationCount++;
-            if (ch.ai_state2 & AI_STATE2_STASIS)
-                Rpg_InactivePopulationCount++;
-
-            if ((tmp_m >= 0) && (tmp_m < RPG_NPCROLE_MAX))
+            Rpg_TotalPopulationCount_global++;
+            if ( (Cache_min_version < 2020700) ||
+                 (p.second.dlevel == nCalculatedActiveDlevel) )
             {
-                if ( ! (ch.ai_state3 & AI_STATE3_STASIS_NOUPKEEP))
+                Rpg_TotalPopulationCount++;
+                if (ch.ai_state2 & AI_STATE2_STASIS)
+                    Rpg_InactivePopulationCount++;
+
+                if ((tmp_m >= 0) && (tmp_m < RPG_NPCROLE_MAX))
                 {
-                    Rpg_PopulationCount[tmp_m]++;
-                    Rpg_WeightedPopulationCount[tmp_m] += tmp_score;
+                    if ( ! (ch.ai_state3 & AI_STATE3_STASIS_NOUPKEEP))
+                    {
+                        Rpg_PopulationCount[tmp_m]++;
+                        Rpg_WeightedPopulationCount[tmp_m] += tmp_score;
+                    }
                 }
             }
 
@@ -4432,6 +4443,8 @@ GameState::Pass0_CacheDataForGame ()
             {
                 if (ch.loot.nAmount > Rpg_ChampionCoins[tmp_color])
                 if (ch.ai_queued_harvest_poi == 0) // not already serving a player
+                if ( (Cache_min_version < 2020700) ||
+                     (p.second.dlevel == nCalculatedActiveDlevel) )
                 {
                     Rpg_ChampionName[tmp_color] = p.first;
                     Rpg_ChampionIndex[tmp_color] = i1;
@@ -5482,8 +5495,8 @@ bool PerformStep(const GameState &inState, const StepData &stepData, GameState &
 
     // Dungeon levels part 2
     {
-        if (outState.dao_IntervalMonsterApocalypse < 2000)
-            outState.dao_IntervalMonsterApocalypse = 2000;
+        if (outState.dao_IntervalMonsterApocalypse < MIN_GAMEROUND_DURATION)
+            outState.dao_IntervalMonsterApocalypse = MIN_GAMEROUND_DURATION;
         // current game round
         Cache_gameround_duration = outState.dao_IntervalMonsterApocalypse;
         Cache_gameround_blockcount = outState.nHeight % Cache_gameround_duration;
@@ -5495,6 +5508,7 @@ bool PerformStep(const GameState &inState, const StepData &stepData, GameState &
         nCalculatedActiveDlevel = Cache_gameround_blockcount / Cache_timeslot_duration;
 
         Cache_timeslot_start = Cache_gameround_start + (Cache_timeslot_duration * nCalculatedActiveDlevel);
+        Cache_gamecache_good = true;
     }
 
     // SMC basic conversion -- part 29: cache some data for the game
