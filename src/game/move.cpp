@@ -298,6 +298,9 @@ Move::ApplySpawn (GameState &state, RandomGenerator &rnd) const
   assert (pl.next_character_index == 0);
   pl.color = color;
 
+  // Dungeon levels part 3
+  pl.dlevel = nCalculatedActiveDlevel;
+
   /* This is a fresh player and name.  Set its value to the height's
      name coin amount and put the remainder in the game fee.  This prevents
      people from "overpaying" on purpose in order to get beefed-up players.

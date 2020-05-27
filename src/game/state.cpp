@@ -3975,8 +3975,13 @@ GameState::HandleKilledLoot (const PlayerID& pId, int chInd,
   if (info.HasDeathTax ())
     {
       const CAmount nTax = nAmount / 25;
-      step.nTaxAmount += nTax;
-      nAmount -= nTax;
+
+      // Abolish death tax
+      if (Cache_min_version < 2020700)
+      {
+          step.nTaxAmount += nTax;
+          nAmount -= nTax;
+      }
     }
 
   /* If requested (and the corresponding fork is in effect), add the coins
@@ -4261,7 +4266,8 @@ GameState::KillRangedAttacks (StepResult& step)
                         ch.ai_npc_role = my_role;
 
                         if (ch.ai_slot_amulet == AI_ITEM_REGEN)
-                            ch.ai_regen_timer = RPG_INTERVAL_MONSTERAPOCALYPSE;
+                            // Dungeon levels part 3
+                            ch.ai_regen_timer = (Cache_min_version < 2020700) ? RPG_INTERVAL_MONSTERAPOCALYPSE : Cache_timeslot_duration;
                         else
                             ch.ai_regen_timer = -1;
 
@@ -4859,11 +4865,11 @@ GameState::Pass1_DAO()
                             {
                                 if (Cache_gameround_duration > 5000)
                                     ch.rpg_rations += (i == 0) ? 1 : 0;
-                                if (Cache_gameround_duration > 4000)
+                                else if (Cache_gameround_duration > 4000)
                                     ch.rpg_rations += 1;
-                                if (Cache_gameround_duration > 3000)
+                                else if (Cache_gameround_duration > 3000)
                                     ch.rpg_rations += (i == 0) ? 2 : 1;
-                                if (Cache_gameround_duration > 2000)
+                                else if (Cache_gameround_duration > 2000)
                                     ch.rpg_rations += 2;
                                 else
                                     ch.rpg_rations += (i == 0) ? 3 : 2;
@@ -5730,6 +5736,11 @@ bool PerformStep(const GameState &inState, const StepData &stepData, GameState &
             {
                 // Tax from banking: 10%
                 CAmount nTax = ch.loot.nAmount / 10;
+
+                // Abolish death tax
+                if (Cache_min_version >= 2020700)
+                    nTax = 0;
+
                 stepResult.nTaxAmount += nTax;
                 ch.loot.nAmount -= nTax;
 
