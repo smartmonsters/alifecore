@@ -1066,11 +1066,11 @@ void CharacterState::MoveTowardsWaypointX_Merchants(RandomGenerator &rnd, int co
     }
     else
     {
-        if (ai_reserve64_1 == 0)
-            ai_reserve64_1 = out_height - aux_spawn_block; // initialize with correct age
+        if (aux_age_active == 0)
+            aux_age_active = out_height - aux_spawn_block; // initialize with correct age
         else
-            ai_reserve64_1++;
-        if (ai_reserve64_1 % Cache_timeslot_duration == 0)
+            aux_age_active++;
+        if (aux_age_active % Cache_timeslot_duration == 0)
             need_ration = true;
 
         if (ai_state2 & AI_STATE2_STASIS)
@@ -1368,6 +1368,123 @@ void CharacterState::MoveTowardsWaypointX_Merchants(RandomGenerator &rnd, int co
 
         from = coord;
         return; // no further move if teleported
+    }
+}
+void CharacterState::MoveTowardsWaypointX_Learn_From_WP(int out_height)
+{
+    // if have waypoints
+    if (!(waypoints.empty()))
+    {
+        ai_idle_time = 0;
+
+        if ( (!(Gamecache_devmode == 3)) && (!(Gamecache_devmode == 4)) )
+        {
+          // monsters are controlled by ai (normally)
+          if (NPCROLE_IS_MONSTER(ai_npc_role))
+          {
+              StopMoving();
+              ai_chat = AI_LEARNRESULT_FAIL_MONSTER;
+          }
+          // make sure merchants never go banking
+          else if (NPCROLE_IS_MERCHANT(ai_npc_role))
+          {
+              StopMoving();
+          }
+          // PCs learn something from human user
+          else if ( ! (ai_state & AI_STATE_MANUAL_MODE) )
+          {
+            // movement orders to battlefield areas are irrevocable
+            if ((ai_queued_harvest_poi < AI_NUM_POI) && (POI_type[ai_queued_harvest_poi] != POITYPE_HARVEST1) && (POI_type[ai_queued_harvest_poi] != POITYPE_HARVEST2))
+            {
+                Coord final_wp = waypoints.front();
+                int k_nearby = -1;
+                for (int k = 0; k < AI_NUM_POI; k++)
+                {
+                    int type = POI_type[k];
+
+                    // all types but the teleporters
+                    if ((type == POITYPE_HARVEST1) || (type == POITYPE_HARVEST2) || (type == POITYPE_BASE) || (type == POITYPE_CENTER))
+                    {
+                        int d = Distance_To_POI[k][final_wp.y][final_wp.x];
+                        if (d <= 12)
+                        {
+                            if ((type == POITYPE_HARVEST2) || (type == POITYPE_BASE)) ai_state |= AI_STATE_FARM_OUTER_RING;
+                            else if (ai_state & AI_STATE_FARM_OUTER_RING) ai_state -= AI_STATE_FARM_OUTER_RING;
+
+                            // memorize nearby area
+                            k_nearby = k;
+                            break;
+                        }
+                    }
+                }
+
+                if (k_nearby >= 0)
+                {
+                    if (k_nearby != ai_fav_harvest_poi)
+                    {
+                        if (k_nearby != ai_queued_harvest_poi)
+                            ai_chat = AI_LEARNRESULT_OK;
+                        else
+                            ai_chat = AI_LEARNRESULT_UNCHANGED;
+
+                        ai_queued_harvest_poi = k_nearby;
+                        ai_order_time = out_height;
+                    }
+                    else
+                    {
+                        // only give warning if player input is clearly nonsensical
+                        if (!AI_IS_SAFEZONE(coord.x, coord.y))
+                            ai_chat = AI_LEARNRESULT_FAIL_ALREADY_HERE;
+
+                        // postpone this change,
+                        // going to same area where you already are may be useful if carrying Book of Resting
+                        if (Cache_min_version < 2020800)
+                        {
+                            ai_queued_harvest_poi = k_nearby;
+                            ai_order_time = out_height;
+                        }
+                    }
+                }
+                else if (!AI_IS_SAFEZONE(coord.x, coord.y))
+                {
+                    ai_chat = AI_LEARNRESULT_FAIL_NO_POLE;
+                }
+            }
+            else if (!AI_IS_SAFEZONE(coord.x, coord.y))
+            {
+                ai_chat = AI_LEARNRESULT_FAIL_IRREVOCABLE;
+            }
+
+            ai_state |= AI_STATE_MANUAL_MODE; // player in control
+            if (ai_state & AI_STATE_AUTO_MODE) ai_state -= AI_STATE_AUTO_MODE; // player was in control at some point
+
+            if (AI_ADJACENT_IS_SAFEZONE(coord.x, coord.y))
+            // manual player movement not allowed if already going to battlefield (part 1)
+            if ((ai_fav_harvest_poi < AI_NUM_POI) && (POI_type[ai_fav_harvest_poi] != POITYPE_HARVEST1) && (POI_type[ai_fav_harvest_poi] != POITYPE_HARVEST2))
+            {
+                ai_fav_harvest_poi = AI_POI_STAYHERE;
+                ai_duty_harvest_poi = 0;
+            }
+          }
+
+          // manual player movement is only allowed in safezones (but allow to learn something first)
+          if (!(AI_ADJACENT_IS_SAFEZONE(coord.x, coord.y)))
+          {
+              StopMoving();
+              if (AI_IS_SAFEZONE(coord.x, coord.y))
+                  ai_chat = AI_LEARNRESULT_PERIMETER;
+          }
+          // manual player movement not allowed if already going to battlefield (part 2)
+          else if ((ai_fav_harvest_poi < AI_NUM_POI) && ((POI_type[ai_fav_harvest_poi] == POITYPE_HARVEST1) || (POI_type[ai_fav_harvest_poi] == POITYPE_HARVEST2)))
+          {
+              StopMoving();
+              ai_chat = AI_LEARNRESULT_FAIL_BLOODLUST;
+          }
+          else if ((RPG_BLOCKS_SINCE_MONSTERAPOCALYPSE(out_height) == 0) && (ai_queued_harvest_poi < AI_NUM_POI) && ((POI_type[ai_queued_harvest_poi] == POITYPE_HARVEST1) || (POI_type[ai_queued_harvest_poi] == POITYPE_HARVEST2)))
+          {
+              StopMoving();
+          }
+        }
     }
 }
 // SMC basic conversion -- part 22: extended version of MoveTowardsWaypoint (part 2)
@@ -1750,120 +1867,10 @@ void CharacterState::MoveTowardsWaypointX_Pathfinder(RandomGenerator &rnd, int c
     }
 
 
-    // if have waypoints
-    if (!(waypoints.empty()))
-    {
-        ai_idle_time = 0;
+    // The "learn something from human user" code has been moved from here
+    // to function MoveTowardsWaypointX_Learn_From_WP so that it can be called
+    // and travel orders can be processed even if the character is on an inactive dlevel.
 
-        if ( (!(Gamecache_devmode == 3)) && (!(Gamecache_devmode == 4)) )
-        {
-          // monsters are controlled by ai (normally)
-          if (NPCROLE_IS_MONSTER(ai_npc_role))
-          {
-              StopMoving();
-              ai_chat = AI_LEARNRESULT_FAIL_MONSTER;
-          }
-          // make sure merchants never go banking
-          else if (NPCROLE_IS_MERCHANT(ai_npc_role))
-          {
-              StopMoving();
-          }
-          // PCs learn something from human user
-          else if ( ! (ai_state & AI_STATE_MANUAL_MODE) )
-          {
-            // movement orders to battlefield areas are irrevocable
-            if ((ai_queued_harvest_poi < AI_NUM_POI) && (POI_type[ai_queued_harvest_poi] != POITYPE_HARVEST1) && (POI_type[ai_queued_harvest_poi] != POITYPE_HARVEST2))
-            {
-                Coord final_wp = waypoints.front();
-                int k_nearby = -1;
-                for (int k = 0; k < AI_NUM_POI; k++)
-                {
-                    int type = POI_type[k];
-
-                    // all types but the teleporters
-                    if ((type == POITYPE_HARVEST1) || (type == POITYPE_HARVEST2) || (type == POITYPE_BASE) || (type == POITYPE_CENTER))
-                    {
-                        int d = Distance_To_POI[k][final_wp.y][final_wp.x];
-                        if (d <= 12)
-                        {
-                            if ((type == POITYPE_HARVEST2) || (type == POITYPE_BASE)) ai_state |= AI_STATE_FARM_OUTER_RING;
-                            else if (ai_state & AI_STATE_FARM_OUTER_RING) ai_state -= AI_STATE_FARM_OUTER_RING;
-
-                            // memorize nearby area
-                            k_nearby = k;
-                            break;
-                        }
-                    }
-                }
-
-                if (k_nearby >= 0)
-                {
-                    if (k_nearby != ai_fav_harvest_poi)
-                    {
-                        if (k_nearby != ai_queued_harvest_poi)
-                            ai_chat = AI_LEARNRESULT_OK;
-                        else
-                            ai_chat = AI_LEARNRESULT_UNCHANGED;
-
-                        ai_queued_harvest_poi = k_nearby;
-                        ai_order_time = out_height;
-                    }
-                    else
-                    {
-                        // only give warning if player input is clearly nonsensical
-                        if (!AI_IS_SAFEZONE(coord.x, coord.y))
-                            ai_chat = AI_LEARNRESULT_FAIL_ALREADY_HERE;
-
-                        // postpone this change,
-                        // going to same area where you already are may be useful if carrying Book of Resting
-                        if (Cache_min_version < 2020800)
-                        {
-                            ai_queued_harvest_poi = k_nearby;
-                            ai_order_time = out_height;
-                        }
-                    }
-                }
-                else if (!AI_IS_SAFEZONE(coord.x, coord.y))
-                {
-                    ai_chat = AI_LEARNRESULT_FAIL_NO_POLE;
-                }
-            }
-            else if (!AI_IS_SAFEZONE(coord.x, coord.y))
-            {
-                ai_chat = AI_LEARNRESULT_FAIL_IRREVOCABLE;
-            }
-
-            ai_state |= AI_STATE_MANUAL_MODE; // player in control
-            if (ai_state & AI_STATE_AUTO_MODE) ai_state -= AI_STATE_AUTO_MODE; // player was in control at some point
-
-            if (AI_ADJACENT_IS_SAFEZONE(coord.x, coord.y))
-            // manual player movement not allowed if already going to battlefield (part 1)
-            if ((ai_fav_harvest_poi < AI_NUM_POI) && (POI_type[ai_fav_harvest_poi] != POITYPE_HARVEST1) && (POI_type[ai_fav_harvest_poi] != POITYPE_HARVEST2))
-            {
-                ai_fav_harvest_poi = AI_POI_STAYHERE;
-                ai_duty_harvest_poi = 0;
-            }
-          }
-
-          // manual player movement is only allowed in safezones (but allow to learn something first)
-          if (!(AI_ADJACENT_IS_SAFEZONE(coord.x, coord.y)))
-          {
-              StopMoving();
-              if (AI_IS_SAFEZONE(coord.x, coord.y))
-                  ai_chat = AI_LEARNRESULT_PERIMETER;
-          }
-          // manual player movement not allowed if already going to battlefield (part 2)
-          else if ((ai_fav_harvest_poi < AI_NUM_POI) && ((POI_type[ai_fav_harvest_poi] == POITYPE_HARVEST1) || (POI_type[ai_fav_harvest_poi] == POITYPE_HARVEST2)))
-          {
-              StopMoving();
-              ai_chat = AI_LEARNRESULT_FAIL_BLOODLUST;
-          }
-          else if ((RPG_BLOCKS_SINCE_MONSTERAPOCALYPSE(out_height) == 0) && (ai_queued_harvest_poi < AI_NUM_POI) && ((POI_type[ai_queued_harvest_poi] == POITYPE_HARVEST1) || (POI_type[ai_queued_harvest_poi] == POITYPE_HARVEST2)))
-          {
-              StopMoving();
-          }
-        }
-    }
 
     // allow "Summon Champion" from every map position, using the button
     if (ai_state3 & AI_STATE3_SUMMONCHAMPION)
@@ -1940,6 +1947,15 @@ void CharacterState::MoveTowardsWaypointX_Pathfinder(RandomGenerator &rnd, int c
             else if ((coord.x == Merchant_base_x[MERCH_STASIS]) && (coord.y == Merchant_base_y[MERCH_STASIS]) && (Merchant_exists[MERCH_STASIS]))
             {
                 aux_stasis_block = out_height;
+
+                // make sure players can't come out of stasis with fully matured travel orders
+                if (Cache_min_version >= 2020700)
+                {
+                    ai_fav_harvest_poi = AI_POI_STAYHERE;
+                    ai_queued_harvest_poi = 0;
+                    ai_marked_harvest_poi = 0;
+                    ai_duty_harvest_poi = 0;
+                }
 
                 ai_state2 |= AI_STATE2_STASIS;
                 ai_idle_time = 0;
@@ -5668,7 +5684,14 @@ bool PerformStep(const GameState &inState, const StepData &stepData, GameState &
     {
         // Dungeon levels part 2
         if (p.second.dlevel != nCalculatedActiveDlevel)
+        {
+            BOOST_FOREACH(PAIRTYPE(const int, CharacterState) &pc, p.second.characters)
+            {
+                pc.second.MoveTowardsWaypointX_Learn_From_WP(outState.nHeight);
+            }
+
             continue;
+        }
 
         // Dungeon levels
         int dl = -1;
@@ -5693,13 +5716,14 @@ bool PerformStep(const GameState &inState, const StepData &stepData, GameState &
             pc.second.MoveTowardsWaypointX_Merchants(rnd0, p.second.color, outState.nHeight);
             if (!(ch.ai_state2 & AI_STATE2_STASIS))
             {
+                pc.second.MoveTowardsWaypointX_Learn_From_WP(outState.nHeight);
                 pc.second.MoveTowardsWaypointX_Pathfinder(rnd0, p.second.color, outState.nHeight);
                 dl = -1;
             }
         }
 
         // Dungeon levels
-        if ((dl >= 0) && (dl <= outState.dao_DlevelMax) && (outState.dao_MinVersion >= 2020600))
+        if ((dl >= 0) && (dl <= outState.dao_DlevelMax / 2) && (outState.dao_MinVersion >= 2020600))
             p.second.dlevel = dl;
     }
 
