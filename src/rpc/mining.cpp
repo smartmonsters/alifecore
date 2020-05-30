@@ -515,10 +515,10 @@ UniValue getblocktemplate(const UniValue& params, bool fHelp)
         throw JSONRPCError(RPC_CLIENT_P2P_DISABLED, "Error: Peer-to-peer functionality missing or disabled");
 
     if (g_connman->GetNodeCount(CConnman::CONNECTIONS_ALL) == 0)
-        throw JSONRPCError(RPC_CLIENT_NOT_CONNECTED, "Huntercoin is not connected!");
+        throw JSONRPCError(RPC_CLIENT_NOT_CONNECTED, "Alifecoin is not connected!");
 
     if (IsInitialBlockDownload())
-        throw JSONRPCError(RPC_CLIENT_IN_INITIAL_DOWNLOAD, "Huntercoin is downloading blocks...");
+        throw JSONRPCError(RPC_CLIENT_IN_INITIAL_DOWNLOAD, "Alifecoin is downloading blocks...");
 
     static unsigned int nTransactionsUpdatedLast;
 
@@ -1013,11 +1013,11 @@ UniValue getauxblock(const UniValue& params, bool fHelp)
         throw JSONRPCError(RPC_CLIENT_P2P_DISABLED, "Error: Peer-to-peer functionality missing or disabled");
 
     if (g_connman->GetNodeCount(CConnman::CONNECTIONS_ALL) == 0 && !Params().MineBlocksOnDemand())
-        throw JSONRPCError(RPC_CLIENT_NOT_CONNECTED, "Huntercoin is not connected!");
+        throw JSONRPCError(RPC_CLIENT_NOT_CONNECTED, "Alifecoin is not connected!");
 
     if (IsInitialBlockDownload() && !Params().MineBlocksOnDemand())
         throw JSONRPCError(RPC_CLIENT_IN_INITIAL_DOWNLOAD,
-                           "Huntercoin is downloading blocks...");
+                           "Alifecoin is downloading blocks...");
     
     /* The variables below are used to keep track of created and not yet
        submitted auxpow blocks.  Lock them to be sure even for multiple

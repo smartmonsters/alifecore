@@ -17,15 +17,15 @@ pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = libnamecoinconsensus.pc
 endif
 
-BITCOIND_BIN=$(top_builddir)/src/huntercoind$(EXEEXT)
-BITCOIN_QT_BIN=$(top_builddir)/src/qt/huntercoin-qt$(EXEEXT)
-BITCOIN_CLI_BIN=$(top_builddir)/src/huntercoin-cli$(EXEEXT)
+BITCOIND_BIN=$(top_builddir)/src/alifecoind$(EXEEXT)
+BITCOIN_QT_BIN=$(top_builddir)/src/qt/alifecoin-qt$(EXEEXT)
+BITCOIN_CLI_BIN=$(top_builddir)/src/alifecoin-cli$(EXEEXT)
 BITCOIN_WIN_INSTALLER=$(PACKAGE)-$(PACKAGE_VERSION)-win$(WINDOWS_BITS)-setup$(EXEEXT)
 
 empty :=
 space := $(empty) $(empty)
 
-OSX_APP=Huntercoin-Qt.app
+OSX_APP=Alifecoin-Qt.app
 OSX_VOLNAME = $(subst $(space),-,$(PACKAGE_NAME))
 OSX_DMG = $(OSX_VOLNAME).dmg
 OSX_BACKGROUND_SVG=background.svg

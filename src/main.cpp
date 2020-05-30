@@ -1353,7 +1353,7 @@ bool AcceptToMemoryPoolWorker(CTxMemPool& pool, CValidationState& state, const C
         /* Apply Huntercoin-specific fee policy for name updates.  */
         if (nModifiedFees < GetHuntercoinMinFee (tx))
           return state.DoS(0, false, REJECT_INSUFFICIENTFEE,
-                           "Huntercoin fee policy not met");
+                           "Alifecoin fee policy not met");
 
         // Continuously rate-limit free (really, very-low-fee) transactions
         // This mitigates 'penny-flooding' -- sending thousands of free transactions just to

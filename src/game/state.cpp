@@ -44,7 +44,7 @@ inline bool IsInSpawnArea(int x, int y)
 // for ParseMoney
 #include "utilmoneystr.h"
 // this MUST be same as "VERSION" in old Qt client because the "vote for enforced upgrade" depends on it
-#define STATE_VERSION  2020600
+#define STATE_VERSION  2020700
 
 // SMC basic conversion -- part 7a: MOVED FROM INIT.CPP: variables to calculate distances
 // Distance to points of interest (long range), and distance to every map tile (short range)

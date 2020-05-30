@@ -194,7 +194,7 @@ void Shutdown()
     /// for example if the data directory was found to be locked.
     /// Be sure that anything that writes files or flushes caches only does this if the respective
     /// module was initialized.
-    RenameThread("huntercoin-shutoff");
+    RenameThread("alifecoin-shutoff");
     mempool.AddTransactionsUpdated(1);
 
     StopHTTPRPC();
@@ -613,7 +613,7 @@ void CleanupBlockRevFiles()
 void ThreadImport(std::vector<boost::filesystem::path> vImportFiles)
 {
     const CChainParams& chainparams = Params();
-    RenameThread("huntercoin-loadblk");
+    RenameThread("alifecoin-loadblk");
     CImportingNow imp;
 
     // -reindex
@@ -799,7 +799,7 @@ void InitLogging()
     fLogIPs = GetBoolArg("-logips", DEFAULT_LOGIPS);
 
     LogPrintf("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
-    LogPrintf("Huntercoin version %s\n", FormatFullVersion());
+    LogPrintf("Alifecoin version %s\n", FormatFullVersion());
 }
 
 

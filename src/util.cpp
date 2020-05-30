@@ -99,8 +99,8 @@ namespace boost {
 
 using namespace std;
 
-const char * const BITCOIN_CONF_FILENAME = "huntercoin.conf";
-const char * const BITCOIN_PID_FILENAME = "huntercoind.pid";
+const char * const BITCOIN_CONF_FILENAME = "alifecoin.conf";
+const char * const BITCOIN_PID_FILENAME = "alifecoind.pid";
 
 map<string, string> mapArgs;
 map<string, vector<string> > mapMultiArgs;
@@ -434,7 +434,7 @@ static std::string FormatException(const std::exception* pex, const char* pszThr
     char pszModule[MAX_PATH] = "";
     GetModuleFileNameA(NULL, pszModule, sizeof(pszModule));
 #else
-    const char* pszModule = "huntercoin";
+    const char* pszModule = "alifecoin";
 #endif
     if (pex)
         return strprintf(
@@ -460,7 +460,7 @@ boost::filesystem::path GetDefaultDataDir()
     // Unix: ~/.huntercoin
 #ifdef WIN32
     // Windows
-    return GetSpecialFolderPath(CSIDL_APPDATA) / "Huntercoin";
+    return GetSpecialFolderPath(CSIDL_APPDATA) / "Alifecoin";
 #else
     fs::path pathRet;
     char* pszHome = getenv("HOME");
@@ -470,10 +470,10 @@ boost::filesystem::path GetDefaultDataDir()
         pathRet = fs::path(pszHome);
 #ifdef MAC_OSX
     // Mac
-    return pathRet / "Library/Application Support/Huntercoin";
+    return pathRet / "Library/Application Support/Alifecoin";
 #else
     // Unix
-    return pathRet / ".huntercoin";
+    return pathRet / ".alifecoin";
 #endif
 #endif
 }

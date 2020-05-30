@@ -77,9 +77,9 @@ static bool AppInitRPC(int argc, char* argv[])
         std::string strUsage = strprintf(_("%s RPC client version"), _(PACKAGE_NAME)) + " " + FormatFullVersion() + "\n";
         if (!mapArgs.count("-version")) {
             strUsage += "\n" + _("Usage:") + "\n" +
-                  "  huntercoin-cli [options] <command> [params]  " + strprintf(_("Send command to %s"), _(PACKAGE_NAME)) + "\n" +
-                  "  huntercoin-cli [options] help                " + _("List commands") + "\n" +
-                  "  huntercoin-cli [options] help <command>      " + _("Get help for a command") + "\n";
+                  "  alifecoin-cli [options] <command> [params]  " + strprintf(_("Send command to %s"), _(PACKAGE_NAME)) + "\n" +
+                  "  alifecoin-cli [options] help                " + _("List commands") + "\n" +
+                  "  alifecoin-cli [options] help <command>      " + _("Get help for a command") + "\n";
 
             strUsage += "\n" + HelpMessageCli();
         }

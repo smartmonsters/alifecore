@@ -95,6 +95,9 @@ std::string ChainNameFromCommandLine()
     bool fRegTest = GetBoolArg("-regtest", false);
     bool fTestNet = GetBoolArg("-testnet", false);
 
+    // SMC basic conversion -- testnet (force testnet)
+    fTestNet = true;
+
     if (fTestNet && fRegTest)
         throw std::runtime_error("Invalid combination of -regtest and -testnet.");
     if (fRegTest)
