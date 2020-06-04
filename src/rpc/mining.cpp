@@ -356,10 +356,11 @@ static UniValue BIP22ValidationResult(const CValidationState& state)
     return "valid?";
 }
 
-#if 0
-getblocktemplate is disabled for merge-mining, since getauxblock should
-be used instead.  All blocks are required to be merge-mined, thus GBT
-makes no sense.
+// SMC basic conversion -- re-enable getblocktemplate
+// #if 0
+// getblocktemplate is disabled for merge-mining, since getauxblock should
+// be used instead.  All blocks are required to be merge-mined, thus GBT
+// makes no sense.
 
 std::string gbt_vb_name(const Consensus::DeploymentPos pos) {
     const struct BIP9DeploymentInfo& vbinfo = VersionBitsDeploymentInfo[pos];
@@ -740,7 +741,7 @@ UniValue getblocktemplate(const UniValue& params, bool fHelp)
 
     return result;
 }
-#endif // Disabled getblocktemplate
+// #endif // Disabled getblocktemplate
 
 class submitblock_StateCatcher : public CValidationInterface
 {
@@ -1141,6 +1142,8 @@ static const CRPCCommand commands[] =
     { "mining",             "prioritisetransaction",  &prioritisetransaction,  true  },
     { "mining",             "submitblock",            &submitblock,            true  },
     { "mining",             "getauxblock",            &getauxblock,            true  },
+  // SMC basic conversion -- re-enable getblocktemplate
+    { "mining",             "getblocktemplate",       &getblocktemplate,       true  },
 
     { "generating",         "generate",               &generate,               true  },
     { "generating",         "generatetoaddress",      &generatetoaddress,      true  },
