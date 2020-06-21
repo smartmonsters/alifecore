@@ -1742,6 +1742,11 @@ bool CheckProofOfWork(const CBlockHeader& block, const Consensus::Params& params
         return true;
     }
 
+
+    // SMC basic conversion -- disallow auxpow
+    return error("%s : AUX POW is not allowed", __func__);
+
+
     /* We have auxpow.  Check it.  */
 
     if (!block.IsAuxpow())
