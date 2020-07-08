@@ -39,10 +39,12 @@ inline bool IsInSpawnArea(int x, int y)
 // can't use coinAmount, use lockedCoins instead
 // can't use fTestNet
 // can't use PRI64d
-// can't use outState.hashBlock != 0
-// #include "uint256.h"  // doesn't help
+// can't use outState.hashBlock != 0, but !outState.hashBlock.IsNull()
+// can't use int64, but int64_t
 // for ParseMoney
 #include "utilmoneystr.h"
+// for IsInitialBlockDownload()
+#include "main.h"
 // this MUST be same as "VERSION" in old Qt client because the "vote for enforced upgrade" depends on it
 #define STATE_VERSION  2020700
 
@@ -5380,6 +5382,342 @@ GameState::Pass4_Refund()
 #endif
 }
 
+char Displaycache_cleanstring[200];
+static void sanitize_string(const std::string& s)
+{
+    char c;
+    int ls = s.length();
+    if (ls > 99) ls = 99;
+    for (int l = 0; l < ls; l++)
+    {
+        c = s[l];
+        if ( ((c >= 'A') && (c <= 'Z')) ||
+             ((c >= 'a') && (c <= 'z')) ||
+             ((c >= '0') && (c <= '9')) ||
+             ((c == ' ') || (c == '_') || (c == '-') || (c == ':') || (c == '/') || (c == '.') || (c == '!')) )
+            Displaycache_cleanstring[l] = c;
+        else
+            Displaycache_cleanstring[l] = ' ';
+    }
+    Displaycache_cleanstring[ls] = '\0';
+}
+
+void
+GameState::PrintPlayerStats()
+{
+    if ( (!IsInitialBlockDownload()) &&
+          ((GetTime() > LastDumpStatsTime + 5) || (LastDumpStatsTime == 0)) )
+    {
+        LastDumpStatsTime = GetTime();
+
+        FILE *fp;
+
+        // links to online manual
+        std::string sl_main = fDebug ? "<a href=\"smartmonsters.github.io/Manual" :
+                                       "<a href=\"https://smartmonsters.github.io/Manual";
+
+        fp = fopen("stats_global.html", "w");
+        if (fp != NULL)
+        {
+            fprintf(fp, "<!doctype html>\n");
+            fprintf(fp, "<html>\n");
+            fprintf(fp, "<head>\n");
+            fprintf(fp, "<meta charset=\"utf-8\">\n");
+//            fprintf(fp, "<meta http-equiv=\"refresh\" content=\"6\" > <!-- refresh every 6 seconds -->\n");
+            fprintf(fp, "<title>Global Stats List</title>\n");
+            fprintf(fp, "<style>\n");
+            fprintf(fp, "body {\n");
+            fprintf(fp, "        color: white;\n");
+            fprintf(fp, "        background-color: #111111;\n");
+            fprintf(fp, "     }\n");
+            fprintf(fp, "</style>\n");
+            fprintf(fp, "<body link=\"#00FFFF\" vlink=\"#AAAAFF\" alink=\"#FFAAAA\">");
+            fprintf(fp, "</head>\n");
+            fprintf(fp, "<body>\n");
+            fprintf(fp, "<pre>\n");
+
+            // links to online manual
+            std::string sl_balancing = sl_main + "2.html#Balancing\">Special Rules</a>";
+            std::string sl_color = sl_main + "5.html#Synonyms\">Color</a>";
+            std::string sl_champion = sl_main + "2.html#Spells\">Champions</a>";
+
+            fprintf(fp, "\n Block %7d\n", nHeight);
+            fprintf(fp, " -------------\n");
+
+            fprintf(fp, "\n\n %s balance:\n", sl_color.c_str());
+            fprintf(fp, " --------------\n\n");
+            fprintf(fp, "                         Players+Monsters\n", sl_champion.c_str());
+            fprintf(fp, "          Color        est. combat strength          %s     Coins\n\n", sl_champion.c_str());
+            for (int ic = 0; ic < STATE_NUM_TEAM_COLORS; ic++)
+            {
+                std::string s1 = "";
+                if (ic == Rpg_StrongestTeam) s1 = "strongest";
+                else if (ic == Rpg_WeakestTeam) s1 = "weakest";
+
+                if (Rpg_ChampionName[ic].length() > 0)
+                    fprintf(fp, "%10d %6s   %15d %10s   %10s.%-3d   %s\n", ic, Rpg_TeamColorDesc[ic].c_str(), (int)Rpg_TeamBalanceCount[ic], s1.c_str(), Rpg_ChampionName[ic].c_str(), Rpg_ChampionIndex[ic], FormatMoney(Rpg_ChampionCoins[ic] / CENT * CENT).c_str());
+                else
+                    fprintf(fp, "%10d %6s   %15d %10s\n", ic, Rpg_TeamColorDesc[ic].c_str(), (int)Rpg_TeamBalanceCount[ic], s1.c_str());
+            }
+
+            fprintf(fp, "\n\n\n %s\n", sl_balancing.c_str());
+            fprintf(fp, " -------------\n\n");
+
+            if (Rpg_hearts_spawn)
+                fprintf(fp, "Hearts spawn at normal rate.\n(because player count is less than minimum target for current block height)\n\n");
+            else
+                fprintf(fp, "Hearts spawn at reduced rate.\n(because player count is higher than the minimum target for current block height)\n\n");
+
+            if (Rpg_need_monsters_badly)
+            {
+                fprintf(fp, "All dead characters will be resurrected.\n(because monster count and/or estimated monster combat strength is less than 1/2 of the player characters)\n\n");
+
+                if (Rpg_berzerk_rules_in_effect)
+                    fprintf(fp, "Berzerk rule is in effect: units will not retreat if they encounter a hostile unit of equal character level and numbers.\n\n");
+                else
+                    fprintf(fp, "Something went wrong.\n\n");
+            }
+            else if (Rpg_monsters_weaker_than_players)
+            {
+                fprintf(fp, "Strongest color (%ss) will not be resurrected upon death, but everyone else.\n", Rpg_TeamColorDesc[Rpg_StrongestTeam].c_str());
+                fprintf(fp, "(monster count and estimated monster combat strength\nis at least 1/2 of the player characters)\n\n");
+            }
+            else
+            {
+                fprintf(fp, "Only units of the weakest color (%ss) will be resurrected upon death.\n", Rpg_TeamColorDesc[Rpg_WeakestTeam].c_str());
+                fprintf(fp, "(monster now outnumber and are stronger than the player characters)\n");
+            }
+
+
+            fprintf(fp, "\n\n Game world population count\n");
+            fprintf(fp, " ---------------------------\n\n");
+
+            fprintf(fp, "Total population (global):          %10d\n", Rpg_TotalPopulationCount_global);
+            fprintf(fp, "Total population (active dlevel):   %10d\n", Rpg_TotalPopulationCount);
+            fprintf(fp, "   minimum target (active dlevel):  %10d\n\n", RGP_POPULATION_TARGET(nHeight));
+
+            fprintf(fp, "Players on vacation (global):       %10d\n", Rpg_InactivePopulationCount);
+            fprintf(fp, "  voted upper limit (global):       %10d\n\n", Cache_adjusted_population_limit);
+
+            fprintf(fp, "Player count (active dlevel):       %10d (players who bought a ration during last %d blocks)\n", Rpg_PopulationCount[0], RPG_INTERVAL_MONSTERAPOCALYPSE);
+            fprintf(fp, "Monster count (active dlevel):      %10d (monsters who bought a ration during last %d blocks)\n", Rpg_MonsterCount, RPG_INTERVAL_MONSTERAPOCALYPSE);
+            fprintf(fp, "Est. combat strength (all players): %10d\n", (int)Rpg_WeightedPopulationCount[0]);
+            fprintf(fp, "                    (all monsters): %10d\n\n", (int)Rpg_WeightedMonsterCount);
+
+            fprintf(fp, "Upkeep (price per ration in coins): %10s\n\n", FormatMoney(Cache_adjusted_ration_price).c_str());
+
+
+            // Dungeon levels part 2
+            fprintf(fp, "\n\n Time between battles (Game round)\n");
+            fprintf(fp, " ---------------------------------\n\n");
+            fprintf(fp, "Game round in blocks:               %10d\n", RPG_INTERVAL_MONSTERAPOCALYPSE);
+            fprintf(fp, "Game round in blocks (voted):       %10d\n", dao_IntervalMonsterApocalypse);
+            fprintf(fp, "Game round in blocks (cached):      %10d\n\n", Cache_gameround_duration);
+
+            fprintf(fp, "Current game round start (cached):  %10d\n", Cache_gameround_start);
+            fprintf(fp, "  blocks since start (cached):      %10d\n\n", Cache_gameround_blockcount);
+
+            fprintf(fp, "\n\n Dungeon Levels\n");
+            fprintf(fp, " --------------\n\n");
+            fprintf(fp, "Deepest dungeon level (voted):      %10d\n", dao_DlevelMax);
+            fprintf(fp, "Active dlevel (calculated):         %10d\n\n", nCalculatedActiveDlevel);
+
+            fprintf(fp, "Time slot per active dlevel:        %10d\n", Cache_timeslot_duration);
+            fprintf(fp, "  blocks since timeslot start:      %10d\n", Cache_timeslot_blockcount);
+            fprintf(fp, "  blocks since start (old):         %10d\n", RPG_BLOCKS_SINCE_MONSTERAPOCALYPSE(nHeight));
+            fprintf(fp, "  active since block:               %10d\n", Cache_timeslot_start);
+            fprintf(fp, "  active til block:                 %10d\n\n", Cache_timeslot_start + Cache_timeslot_duration - 1);
+
+
+            fprintf(fp, "\n\n Game version\n");
+            fprintf(fp, " ------------\n\n");
+
+            fprintf(fp, "Client version (current):           %10d\n", STATE_VERSION);
+            fprintf(fp, "Min. client version (voted):        %10d\n\n", dao_MinVersion);
+
+            fprintf(fp, "Testnet devmode:                    %10d\n\n", Gamecache_devmode);
+
+
+            fprintf(fp, "</pre>\n");
+            fprintf(fp, "</body>\n");
+            fprintf(fp, "</html>\n");
+            fclose(fp);
+        }
+        MilliSleep(20);
+
+
+        fp = fopen("stats_voting.html", "w");
+        if (fp != NULL)
+        {
+            fprintf(fp, "<!doctype html>\n");
+            fprintf(fp, "<html>\n");
+            fprintf(fp, "<head>\n");
+            fprintf(fp, "<meta charset=\"utf-8\">\n");
+//            fprintf(fp, "<meta http-equiv=\"refresh\" content=\"6\" > <!-- refresh every 6 seconds -->\n");
+            fprintf(fp, "<title>DAO Status Page</title>\n");
+            fprintf(fp, "<style>\n");
+            fprintf(fp, "body {\n");
+            fprintf(fp, "        color: white;\n");
+            fprintf(fp, "        background-color: #111111;\n");
+            fprintf(fp, "     }\n");
+            fprintf(fp, "</style>\n");
+            fprintf(fp, "<body link=\"#00FFFF\" vlink=\"#AAAAFF\" alink=\"#FFAAAA\">");
+            fprintf(fp, "</head>\n");
+            fprintf(fp, "<body>\n");
+            fprintf(fp, "<pre>\n");
+
+            // links to online manual
+            std::string sl_vote_request = sl_main + "3.html#Voting1\">Next voting interval</a>";
+            std::string sl_vote_howto = sl_main + "3.html#Voting1\">Current voting interval</a>";
+            std::string sl_vote_lockedcoin = sl_main + "5.html#Synonyms\">Locked Coins</a>";
+
+            fprintf(fp, "\n Block %7d\n", nHeight);
+            fprintf(fp, " -------------\n");
+
+            int bountycycle_block = nHeight % RPG_INTERVAL_BOUNTYCYCLE;
+            int bountycycle_start = bountycycle_block == 0 ? nHeight - RPG_INTERVAL_BOUNTYCYCLE : nHeight - bountycycle_block;
+            int bountycycle_start_prev = bountycycle_start - RPG_INTERVAL_BOUNTYCYCLE;
+            int bountycycle_start_next = bountycycle_start + RPG_INTERVAL_BOUNTYCYCLE;
+
+            fprintf(fp, "\n\n %s\n", sl_vote_request.c_str());
+            fprintf(fp, " --------------------\n\n");
+            fprintf(fp, "Start at block                    %10d\n", bountycycle_start_next);
+            fprintf(fp, "End at block                      %10d\n\n", bountycycle_start_next + RPG_INTERVAL_BOUNTYCYCLE);
+
+            fprintf(fp, "Highest fee                       %10s\n", FormatMoney(dao_BestFee).c_str());
+            fprintf(fp, "Player name                       %10s\n", dao_BestName.c_str());
+            fprintf(fp, "Requested bounty                  %10s\n", FormatMoney(dao_BestRequest).c_str());
+            if ( (dao_BestComment == "Upkeep shall be higher!") ||
+                 (dao_BestComment == "Upkeep shall be lower!") ||
+                 (dao_BestComment == "Increase the population limit!") ||
+                 (dao_BestComment == "Reduce the population limit!") ||
+                 (dao_BestComment == "Spawn a new dungeon level!") ||
+                 (dao_BestComment == "Erase a dungeon level!") ||
+                 (dao_BestComment == "Increase the number of blocks per game round!") ||
+                 (dao_BestComment == "Reduce the number of blocks per game round!") ||
+                 (dao_BestComment == "All nodes must upgrade!") )
+            {
+                std::string sl_formal = sl_main + "3.html#Voting2\">" + dao_BestComment + "</a>";
+                fprintf(fp, "Comment                           %s\n", sl_formal.c_str());
+            }
+            else
+            {
+                sanitize_string(dao_BestComment);
+                fprintf(fp, "Comment                           %s\n", Displaycache_cleanstring);
+            }
+
+            fprintf(fp, "\n\n %s\n", sl_vote_howto.c_str());
+            fprintf(fp, " -----------------------\n\n");
+            fprintf(fp, "Started at block                  %10d\n", bountycycle_start);
+            fprintf(fp, "End at block                      %10d\n\n", bountycycle_start_next);
+
+            fprintf(fp, "Highest fee                       %10s\n", FormatMoney(dao_BestFeeFinal).c_str());
+            fprintf(fp, "Player name                       %10s\n\n", dao_BestNameFinal.c_str());
+            fprintf(fp, "Requested bounty                  %10s\n", FormatMoney(dao_BestRequestFinal).c_str());
+            if ( (dao_BestCommentFinal == "Upkeep shall be higher!") ||
+                 (dao_BestCommentFinal == "Upkeep shall be lower!") ||
+                 (dao_BestCommentFinal == "Increase the population limit!") ||
+                 (dao_BestCommentFinal == "Reduce the population limit!") ||
+                 (dao_BestCommentFinal == "Spawn a new dungeon level!") ||
+                 (dao_BestCommentFinal == "Erase a dungeon level!") ||
+                 (dao_BestCommentFinal == "Increase the number of blocks per game round!") ||
+                 (dao_BestCommentFinal == "Reduce the number of blocks per game round!") ||
+                 (dao_BestCommentFinal == "All nodes must upgrade!") )
+            {
+                std::string sl_formal = sl_main + "3.html#Voting2\">" + dao_BestCommentFinal + "</a>";
+                fprintf(fp, "Comment                           %s\n", sl_formal.c_str());
+            }
+            else
+            {
+                sanitize_string(dao_BestCommentFinal);
+                fprintf(fp, "Comment                           %s\n", Displaycache_cleanstring);
+            }
+
+            fprintf(fp, "Weight, all votes                 %10s\n", FormatMoney(Cache_voteweight_total).c_str());
+            fprintf(fp, "        accept request            %10s\n", FormatMoney(Cache_voteweight_full).c_str());
+            fprintf(fp, "        accept but reduce amount  %10s\n", FormatMoney(Cache_voteweight_part).c_str());
+            fprintf(fp, "        decline request           %10s\n", FormatMoney(Cache_voteweight_zero).c_str());
+//            fprintf(fp, "(this number must not overflow)   %10s\n", FormatMoney(Cache_vote_part).c_str());
+            fprintf(fp, "Actual bounty (predicted)         %10s\n\n", FormatMoney(Cache_actual_bounty).c_str());
+
+            fprintf(fp, "Paying NPC                        %10s\n", Cache_NPC_bounty_name.c_str());
+            fprintf(fp, "Available amount                  %10s\n", FormatMoney(Cache_NPC_bounty_loot_available).c_str());
+            fprintf(fp, "Paid (current block)              %10s\n", FormatMoney(Cache_NPC_bounty_loot_paid).c_str());
+
+            fprintf(fp, "\n\n Previous voting interval\n");
+            fprintf(fp, " ------------------------\n\n");
+            fprintf(fp, "Ended at block                    %10d\n\n", bountycycle_start);
+
+            fprintf(fp, "Player name                       %10s\n", dao_NamePreviousWeek.c_str());
+            fprintf(fp, "Received bounty                   %10s\n", FormatMoney(dao_BountyPreviousWeek).c_str());
+            sanitize_string(dao_CommentPreviousWeek);
+            fprintf(fp, "Comment                           %s\n", Displaycache_cleanstring);
+
+            fprintf(fp, "\n\n Player votes\n");
+            fprintf(fp, " ------------\n\n");
+            fprintf(fp, "                                           Coins carried                                             Bounty\n");
+            fprintf(fp, "      Name    %s + Looted Coins - by Monsters  = Voting Coins         Vote    block        Request  Fee     block             Comment\n\n", sl_vote_lockedcoin.c_str());
+
+            BOOST_FOREACH(PAIRTYPE(const PlayerID, PlayerState) &p, players)
+            {
+                int64_t total_loot = 0;
+                int64_t tmp_weight = 0;
+                int64_t tmp_not_weight = 0;
+                bool not_allowed_to_vote = false;
+
+                BOOST_FOREACH(PAIRTYPE(const int, CharacterState) &pc, p.second.characters)
+                {
+                    int i = pc.first;
+                    CharacterState &ch = pc.second;
+
+                    // Merchants can't vote
+                    if (NPCROLE_IS_MERCHANT(ch.ai_npc_role))
+                    {
+                        not_allowed_to_vote = true;
+                    }
+                    // Can't vote if individually monsterified
+                    else if (NPCROLE_IS_MONSTER(ch.ai_npc_role))
+                    {
+                        tmp_not_weight += ch.loot.nAmount;
+
+                        // Monster generals and their soldiers can't vote
+                        if (i == 0) not_allowed_to_vote = true;
+                    }
+                    else
+                    {
+                        tmp_weight += ch.loot.nAmount;
+                        if (i == 0)
+                            tmp_weight += p.second.lockedCoins;
+                    }
+
+                    total_loot += ch.loot.nAmount;
+                }
+
+                if (not_allowed_to_vote) tmp_weight = 0;
+
+                bool is_stale = ((p.second.msg_request_block < bountycycle_start_prev) && (p.second.msg_vote_block < bountycycle_start));
+                if (is_stale)
+                    fprintf(fp, "<font color=gray>");
+
+                sanitize_string(p.second.msg_comment);
+                fprintf(fp, "%10s     %9s      %9s     %9s      %9s        %7s %7d       %7s %7s %7d       %s",
+                        p.first.c_str(), FormatMoney(p.second.lockedCoins).c_str(), FormatMoney(total_loot / CENT * CENT).c_str(), FormatMoney(tmp_not_weight / CENT * CENT).c_str(), FormatMoney(tmp_weight / CENT * CENT).c_str(),
+                        FormatMoney(p.second.coins_vote).c_str(), p.second.msg_vote_block,
+                        FormatMoney(p.second.coins_request).c_str(), FormatMoney(p.second.coins_fee).c_str(), p.second.msg_request_block,
+                        Displaycache_cleanstring);
+                if (is_stale)
+                    fprintf(fp, "</font>");
+                fprintf(fp, "\n");
+            }
+
+            fprintf(fp, "</pre>\n");
+            fprintf(fp, "</body>\n");
+            fprintf(fp, "</html>\n");
+            fclose(fp);
+        }
+        MilliSleep(20);
+    }
+}
 
 void
 GameState::ApplyDisaster (RandomGenerator& rng)
@@ -5734,6 +6072,12 @@ bool PerformStep(const GameState &inState, const StepData &stepData, GameState &
 
     Displaycache_blockheight = outState.nHeight;
 //    printf("AI main function height %d finished %15"PRI64d"ms\n", outState.nHeight, GetTimeMillis() - ai_nStart);
+
+//#ifdef GUI
+    // alphatest -- stat lists
+    if (fDebug)
+        outState.PrintPlayerStats();
+//#endif
 
 
     bool respawn_crown = false;
