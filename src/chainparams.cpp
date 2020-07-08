@@ -268,8 +268,8 @@ public:
         base58Prefixes[EXT_PUBLIC_KEY] = boost::assign::list_of(0x04)(0x35)(0x87)(0xCF).convert_to_container<std::vector<unsigned char> >();
         base58Prefixes[EXT_SECRET_KEY] = boost::assign::list_of(0x04)(0x35)(0x83)(0x94).convert_to_container<std::vector<unsigned char> >();
 
-        // FIXME: Set seeds for Huntercoin.
-        //vFixedSeeds = std::vector<SeedSpec6>(pnSeed6_test, pnSeed6_test + ARRAYLEN(pnSeed6_test));
+        // SMC basic conversion -- Set seeds
+        vFixedSeeds = std::vector<SeedSpec6>(pnSeed6_test, pnSeed6_test + ARRAYLEN(pnSeed6_test));
 
         fMiningRequiresPeers = true;
         fDefaultConsistencyChecks = false;
@@ -281,7 +281,8 @@ public:
             boost::assign::map_list_of
             // SMC basic conversion -- testnet
 //            (     0, uint256S("000000492c361a01ce7558a3bfb198ea3ff2f86f8b0c2e00d26135c53f4acbf7")),
-            (     0, uint256S("00000063c87e68fcefc5907d4b4ce8441295b7e34a5e91a98cae872d8e8f1e92")),
+            (     0, uint256S("00000063c87e68fcefc5907d4b4ce8441295b7e34a5e91a98cae872d8e8f1e92"))
+            (   180, uint256S("2081c25e2f3ac3dc61e70528c125f008e720952e995ee0f7af2a6076c2807657")),
             0,
             0,
             0
