@@ -3720,6 +3720,12 @@ void GameState::DivideLootAmongPlayers()
       BOOST_FOREACH (PAIRTYPE(const int, CharacterState)& pc,
                      p.second.characters)
         {
+          // SMC basic conversion -- must be on same dlevel to grab loot
+          if (Cache_min_version >= 2020800)
+          if (!NPCROLE_IS_MERCHANT(pc.second.ai_npc_role))
+          if (p.second.dlevel != nCalculatedActiveDlevel)
+              continue;
+
           CharacterOnLootTile tileChar;
 
           tileChar.pid = p.first;
@@ -3873,6 +3879,12 @@ void GameState::CollectHearts(RandomGenerator &rnd)
         PlayerState *pl = &mi->second;
         if (!pl->CanSpawnCharacter())
             continue;
+
+        // SMC basic conversion -- must be on same dlevel to collect hearts
+        if (Cache_min_version >= 2020800)
+        if (pl->dlevel != nCalculatedActiveDlevel)
+            continue;
+
         BOOST_FOREACH(PAIRTYPE(const int, CharacterState) &pc, pl->characters)
         {
             const CharacterState &ch = pc.second;
@@ -5468,15 +5480,15 @@ GameState::PrintPlayerStats()
             // links to online manual
             std::string sl_balancing = sl_main + "2.html#Balancing\">Special Rules</a>";
             std::string sl_color = sl_main + "5.html#Synonyms\">Color</a>";
-            std::string sl_champion = sl_main + "2.html#Spells\">Champions</a>";
+            std::string sl_champion = sl_main + "2.html#Spells\">Champion</a>";
 
             fprintf(fp, "\n Block %7d\n", nHeight);
             fprintf(fp, " -------------\n");
 
             fprintf(fp, "\n\n %s balance:\n", sl_color.c_str());
             fprintf(fp, " --------------\n\n");
-            fprintf(fp, "                         Players+Monsters\n", sl_champion.c_str());
-            fprintf(fp, "          Color        est. combat strength          %s     Coins\n\n", sl_champion.c_str());
+            fprintf(fp, "                           Est. Combat Strength          %s\n", sl_champion.c_str());
+            fprintf(fp, "      Faction Color         (Players+Monsters)       (dungeon level %d)    Coins\n\n", nCalculatedActiveDlevel);
             for (int ic = 0; ic < STATE_NUM_TEAM_COLORS; ic++)
             {
                 std::string s1 = "";
@@ -5484,7 +5496,7 @@ GameState::PrintPlayerStats()
                 else if (ic == Rpg_WeakestTeam) s1 = "weakest";
 
                 if (Rpg_ChampionName[ic].length() > 0)
-                    fprintf(fp, "%10d %6s   %15d %10s   %10s.%-3d   %s\n", ic, Rpg_TeamColorDesc[ic].c_str(), (int)Rpg_TeamBalanceCount[ic], s1.c_str(), Rpg_ChampionName[ic].c_str(), Rpg_ChampionIndex[ic], FormatMoney(Rpg_ChampionCoins[ic] / CENT * CENT).c_str());
+                    fprintf(fp, "%10d %6s   %15d %10s      %10s.%-3d       %s\n", ic, Rpg_TeamColorDesc[ic].c_str(), (int)Rpg_TeamBalanceCount[ic], s1.c_str(), Rpg_ChampionName[ic].c_str(), Rpg_ChampionIndex[ic], FormatMoney(Rpg_ChampionCoins[ic] / CENT * CENT).c_str());
                 else
                     fprintf(fp, "%10d %6s   %15d %10s\n", ic, Rpg_TeamColorDesc[ic].c_str(), (int)Rpg_TeamBalanceCount[ic], s1.c_str());
             }
@@ -5525,7 +5537,7 @@ GameState::PrintPlayerStats()
             fprintf(fp, "Total population (active dlevel):   %10d\n", Rpg_TotalPopulationCount);
             fprintf(fp, "   minimum target (active dlevel):  %10d\n\n", RGP_POPULATION_TARGET(nHeight));
 
-            fprintf(fp, "Players on vacation (global):       %10d\n", Rpg_InactivePopulationCount);
+            fprintf(fp, "Players on vacation (active dlevel):%10d\n", Rpg_InactivePopulationCount);
             fprintf(fp, "  voted upper limit (global):       %10d\n\n", Cache_adjusted_population_limit);
 
             fprintf(fp, "Player count (active dlevel):       %10d (players who bought a ration during last %d blocks)\n", Rpg_PopulationCount[0], RPG_INTERVAL_MONSTERAPOCALYPSE);
