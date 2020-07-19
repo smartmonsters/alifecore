@@ -1490,7 +1490,7 @@ void CharacterState::MoveTowardsWaypointX_Learn_From_WP(int out_height)
     }
 }
 // SMC basic conversion -- part 22: extended version of MoveTowardsWaypoint (part 2)
-void CharacterState::MoveTowardsWaypointX_Pathfinder(RandomGenerator &rnd, int color_of_moving_char, int out_height)
+void CharacterState::MoveTowardsWaypointX_Pathfinder(RandomGenerator &rnd, int color_of_moving_char, int out_height, int out_monster)
 {
     // choose one of several optimal paths at random
 #define AI_NUM_MOVES 10
@@ -2563,7 +2563,11 @@ void CharacterState::MoveTowardsWaypointX_Pathfinder(RandomGenerator &rnd, int c
                 // or any character retreating
                 else if ((NPCROLE_IS_MONSTER(ai_npc_role)) || (panic))
                 {
-                    int desired_dist = panic ? rnd.GetIntRnd(500) : rnd.GetIntRnd(750);
+                    int desired_dist;
+                    if (Cache_min_version < 2020800)
+                        desired_dist = panic ? rnd.GetIntRnd(500) : rnd.GetIntRnd(750);
+                    else
+                        desired_dist = panic ? rnd.GetIntRnd(1000 / (2 + out_monster)) : rnd.GetIntRnd(1500 / (2 + out_monster));
                     int d_best_adj = AI_DIST_INFINITE;
                     int tier_best = -3;
 
@@ -3536,8 +3540,8 @@ GameState::GameState(const Consensus::Params& p)
     gs_reserve_ll7 = 0;
     gs_reserve_ll8 = 0;
     gs_reserve_ll9 = 0;
-    gs_reserve1 = 0;
-    gs_reserve2 = 0;
+    dao_CrownholderBounty = 0;
+    dao_MonsTerritorial = 0;
     gs_reserve3 = 0;
     gs_reserve4 = 0;
     gs_reserve5 = 0;
@@ -4540,6 +4544,7 @@ GameState::Pass0_CacheDataForGame ()
 //                  }
                     // alphatest -- bounties and voting
                     if (tmp_m >= MERCH_NORMAL_FIRST)
+                    if ((dao_MinVersion < 2020800) || (tmp_m != MERCH_RATIONS_TEST) || (dao_CrownholderBounty))
                     {
                         if (ch.loot.nAmount > Cache_NPC_bounty_loot_available)
                         {
@@ -5061,6 +5066,22 @@ GameState::Pass1_DAO()
                         if (dao_IntervalMonsterApocalypse >= 2000)
                             dao_IntervalMonsterApocalypse -= 1000;
                     }
+                    else if ((dao_MinVersion >= 2020800) && (dao_BestCommentFinal == "The crownholder shall pay for bounties!"))
+                    {
+                        dao_CrownholderBounty = 1;
+                    }
+                    else if (dao_BestCommentFinal == "The crownholder shall accumulate coins!")
+                    {
+                        dao_CrownholderBounty = 0;
+                    }
+                    else if ((dao_MinVersion >= 2020800) && (dao_BestCommentFinal == "Monsters shall be more territorial!"))
+                    {
+                        dao_MonsTerritorial++;
+                    }
+                    else if (dao_BestCommentFinal == "Monsters shall roam more freely!")
+                    {
+                        if (dao_MonsTerritorial > 0) dao_MonsTerritorial--;
+                    }
                 }
             }
 
@@ -5538,14 +5559,12 @@ GameState::PrintPlayerStats()
             fprintf(fp, "   minimum target (active dlevel):  %10d\n\n", RGP_POPULATION_TARGET(nHeight));
 
             fprintf(fp, "Players on vacation (active dlevel):%10d\n", Rpg_InactivePopulationCount);
-            fprintf(fp, "  voted upper limit (global):       %10d\n\n", Cache_adjusted_population_limit);
+            fprintf(fp, "  voted upper limit (global):       %10d\n\n", (int)Cache_adjusted_population_limit);
 
             fprintf(fp, "Player count (active dlevel):       %10d (players who bought a ration during last %d blocks)\n", Rpg_PopulationCount[0], RPG_INTERVAL_MONSTERAPOCALYPSE);
             fprintf(fp, "Monster count (active dlevel):      %10d (monsters who bought a ration during last %d blocks)\n", Rpg_MonsterCount, RPG_INTERVAL_MONSTERAPOCALYPSE);
             fprintf(fp, "Est. combat strength (all players): %10d\n", (int)Rpg_WeightedPopulationCount[0]);
             fprintf(fp, "                    (all monsters): %10d\n\n", (int)Rpg_WeightedMonsterCount);
-
-            fprintf(fp, "Upkeep (price per ration in coins): %10s\n\n", FormatMoney(Cache_adjusted_ration_price).c_str());
 
 
             // Dungeon levels part 2
@@ -5568,6 +5587,15 @@ GameState::PrintPlayerStats()
             fprintf(fp, "  blocks since start (old):         %10d\n", RPG_BLOCKS_SINCE_MONSTERAPOCALYPSE(nHeight));
             fprintf(fp, "  active since block:               %10d\n", Cache_timeslot_start);
             fprintf(fp, "  active til block:                 %10d\n\n", Cache_timeslot_start + Cache_timeslot_duration - 1);
+
+
+            fprintf(fp, "\n\n Other settings (voted)\n");
+            fprintf(fp, " ----------------------\n\n");
+
+            fprintf(fp, "Upkeep (price per ration in coins): %10s\n\n", FormatMoney(Cache_adjusted_ration_price).c_str());
+
+            fprintf(fp, "Desired travel distance (monsters):      1d%-3d \n", 1500 / (2 + dao_MonsTerritorial));
+            fprintf(fp, "                     (if panicked):      1d%-3d \n\n", 1000 / (2 + dao_MonsTerritorial));
 
 
             fprintf(fp, "\n\n Game version\n");
@@ -6096,7 +6124,7 @@ bool PerformStep(const GameState &inState, const StepData &stepData, GameState &
             if (!(ch.ai_state2 & AI_STATE2_STASIS))
             {
                 pc.second.MoveTowardsWaypointX_Learn_From_WP(outState.nHeight);
-                pc.second.MoveTowardsWaypointX_Pathfinder(rnd0, p.second.color, outState.nHeight);
+                pc.second.MoveTowardsWaypointX_Pathfinder(rnd0, p.second.color, outState.nHeight, outState.dao_MonsTerritorial);
                 dl = -1;
             }
         }
