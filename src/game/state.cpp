@@ -5478,7 +5478,7 @@ GameState::PrintPlayerStats()
         std::string sl_main = fDebug ? "<a href=\"smartmonsters.github.io/Manual" :
                                        "<a href=\"https://smartmonsters.github.io/Manual";
 
-        fp = fopen("stats_global.html", "w");
+        fp = fopen("stats_global_core.html", "w");
         if (fp != NULL)
         {
             fprintf(fp, "<!doctype html>\n");
@@ -5615,7 +5615,7 @@ GameState::PrintPlayerStats()
         MilliSleep(20);
 
 
-        fp = fopen("stats_voting.html", "w");
+        fp = fopen("stats_voting_core.html", "w");
         if (fp != NULL)
         {
             fprintf(fp, "<!doctype html>\n");
@@ -6082,8 +6082,11 @@ bool PerformStep(const GameState &inState, const StepData &stepData, GameState &
 
     // SMC basic conversion -- part 33: second pass (melee attacks, path-finding or ai)
     RandomGenerator rnd0(AI_rng_seed_hashblock);
-    printf("AI RNG seed %s\n", AI_rng_seed_hashblock.ToString().c_str());
-//    printf("AI main function start %15"PRI64d"ms\n", GetTimeMillis() - ai_nStart);
+    if (fDebug)
+    {
+        printf("AI RNG seed %s\n", AI_rng_seed_hashblock.ToString().c_str());
+        printf("AI main function start %dms\n", (int)(GetTimeMillis() - ai_nStart));
+    }
     outState.Pass2_Melee();
 
     // For all alive players perform path-finding
@@ -6140,7 +6143,8 @@ bool PerformStep(const GameState &inState, const StepData &stepData, GameState &
     outState.Pass4_Refund();
 
     Displaycache_blockheight = outState.nHeight;
-//    printf("AI main function height %d finished %15"PRI64d"ms\n", outState.nHeight, GetTimeMillis() - ai_nStart);
+    if (fDebug)
+        printf("AI main function height %d finished %dms\n", outState.nHeight, (int)(GetTimeMillis() - ai_nStart));
 
 //#ifdef GUI
     // alphatest -- stat lists
