@@ -6005,11 +6005,14 @@ bool PerformStep(const GameState &inState, const StepData &stepData, GameState &
         Cache_gameround_start = outState.nHeight - Cache_gameround_blockcount;
         // current time slot
         Cache_timeslot_duration = Cache_gameround_duration / (outState.dao_DlevelMax + 1);
-        Cache_timeslot_blockcount = outState.nHeight % Cache_timeslot_duration;
 
         nCalculatedActiveDlevel = Cache_gameround_blockcount / Cache_timeslot_duration;
+        if (nCalculatedActiveDlevel > outState.dao_DlevelMax) // fix rounding error
+            if (Cache_min_version >= 2020800)
+                nCalculatedActiveDlevel = outState.dao_DlevelMax;
 
         Cache_timeslot_start = Cache_gameround_start + (Cache_timeslot_duration * nCalculatedActiveDlevel);
+        Cache_timeslot_blockcount = outState.nHeight - Cache_timeslot_start;
         Cache_gamecache_good = true;
     }
 
