@@ -46,7 +46,7 @@ inline bool IsInSpawnArea(int x, int y)
 // for IsInitialBlockDownload()
 #include "main.h"
 // this MUST be same as "VERSION" in old Qt client because the "vote for enforced upgrade" depends on it
-#define STATE_VERSION  2020700
+#define STATE_VERSION  2020800
 
 // SMC basic conversion -- part 7a: MOVED FROM INIT.CPP: variables to calculate distances
 // Distance to points of interest (long range), and distance to every map tile (short range)
@@ -1440,7 +1440,7 @@ void CharacterState::MoveTowardsWaypointX_Learn_From_WP(int out_height)
 
                         // postpone this change,
                         // going to same area where you already are may be useful if carrying Book of Resting
-                        if (Cache_min_version < 2020800)
+                        if (true) // was: if (Cache_min_version < .......)
                         {
                             ai_queued_harvest_poi = k_nearby;
                             ai_order_time = out_height;
